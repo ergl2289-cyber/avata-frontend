@@ -6,6 +6,10 @@ const tg = useTelegramStore()
 const results = ref<Record<string, { loading: boolean; status: number | null; body: unknown; error: string | null }>>({})
 const devTgId = ref(111111)
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const carId = ref(1)
+const sellerId = ref(1)
+
+function setCarId(id: number) { carId.value = id }
 
 interface _Endpoint {
   key: string; label: string; method: string; path: string; auth: boolean; click: () => Promise<void>
@@ -68,8 +72,8 @@ const openEndpoints: _Endpoint[] = [
   cp('ref_categories', 'GET', '/api/references/vehicle-categories', false, () => call('ref_categories', () => send('GET', '/api/references/vehicle-categories'))),
   cp('ref_body', 'GET', '/api/references/body-types', false, () => call('ref_body', () => send('GET', '/api/references/body-types'))),
   cp('auth_bad', 'POST', '/api/auth/telegram (bad initData → 400)', false, () => call('auth_bad', () => send('POST', '/api/auth/telegram', { init_data: 'fake' }))),
-  cp('rev_seller', 'GET', '/api/reviews/seller/1', false, () => call('rev_seller', () => send('GET', '/api/reviews/seller/1'))),
-  cp('rev_rating', 'GET', '/api/reviews/seller/1/rating', false, () => call('rev_rating', () => send('GET', '/api/reviews/seller/1/rating'))),
+  cp('rev_seller', 'GET', `/api/reviews/seller/{id}`, false, () => call('rev_seller', () => send('GET', `/api/reviews/seller/${sellerId.value}`))),
+  cp('rev_rating', 'GET', `/api/reviews/seller/{id}/rating`, false, () => call('rev_rating', () => send('GET', `/api/reviews/seller/${sellerId.value}/rating`))),
 ]
 
 // Auth required
@@ -80,9 +84,9 @@ const authEndpoints: _Endpoint[] = [
   cp('cars_feed', 'GET', '/api/cars?limit=3', true, () => call('cars_feed', () => send('GET', '/api/cars?limit=3'))),
   cp('cars_my', 'GET', '/api/cars/my', true, () => call('cars_my', () => send('GET', '/api/cars/my'))),
   cp('cars_liked', 'GET', '/api/cars/liked', true, () => call('cars_liked', () => send('GET', '/api/cars/liked'))),
-  cp('cars_detail', 'GET', '/api/cars/1', true, () => call('cars_detail', () => send('GET', '/api/cars/1'))),
-  cp('cars_like', 'POST', '/api/cars/1/like', true, () => call('cars_like', () => send('POST', '/api/cars/1/like'))),
-  cp('cars_view', 'POST', '/api/cars/1/view', true, () => call('cars_view', () => send('POST', '/api/cars/1/view'))),
+  cp('cars_detail', 'GET', `/api/cars/{id}`, true, () => call('cars_detail', () => send('GET', `/api/cars/${carId.value}`))),
+  cp('cars_like', 'POST', `/api/cars/{id}/like`, true, () => call('cars_like', () => send('POST', `/api/cars/${carId.value}/like`))),
+  cp('cars_view', 'POST', `/api/cars/{id}/view`, true, () => call('cars_view', () => send('POST', `/api/cars/${carId.value}/view`))),
 ]
 
 async function createTestCar() {
@@ -101,11 +105,13 @@ async function createTestCar() {
     fuel_type: 'petrol',
     color: 'Чёрный',
   }))
+  const r = results.value['cars_create']
+  if (r?.status === 200) setCarId((r.body as Record<string, number>).car_id)
 }
 
 async function createTestReview() {
   await call('rev_create', () => send('POST', '/api/reviews', {
-    seller_id: 1,
+    seller_id: sellerId.value,
     rating: 5,
     text: 'Тестовый отзыв через API Test',
   }))
@@ -120,6 +126,7 @@ async function createAndLikeCar() {
     city_id: 1, source: 'selfposted',
   })
   const car = carResp as { car_id: number }
+  setCarId(car.car_id)
   await call('car_like_new', () => send('POST', `/api/cars/${car.car_id}/like`))
   await call('car_view_new', () => send('POST', `/api/cars/${car.car_id}/view`))
 }
@@ -143,6 +150,15 @@ async function createAndLikeCar() {
       <div class="row">
         <input v-model.number="devTgId" type="number" placeholder="tg_id" class="input" />
         <button class="btn btn-primary" @click="devAuth">Login as test user</button>
+      </div>
+    </section>
+
+    <!-- ID inputs -->
+    <section class="card">
+      <h2>🎯 Target IDs (edit before calling endpoints)</h2>
+      <div class="row" style="gap: 16px;">
+        <label>Car ID: <input v-model.number="carId" type="number" class="input" style="width:80px" /></label>
+        <label>Seller ID: <input v-model.number="sellerId" type="number" class="input" style="width:80px" /></label>
       </div>
     </section>
 
