@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Search, SlidersHorizontal, X, SearchX } from 'lucide-vue-next'
 import CarCard from '@/components/car/CarCard.vue'
 import CarCardSkeleton from '@/components/car/CarCardSkeleton.vue'
@@ -9,6 +10,9 @@ import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 
+defineOptions({ name: 'HomeView' })
+
+const router = useRouter()
 const cars = useCarsStore()
 const filters = useFiltersStore()
 const profile = useProfileStore()
@@ -23,15 +27,14 @@ const searchPlaceholder = computed(() =>
 
 const { sentinel } = useInfiniteScroll(() => cars.loadMore())
 
+// Submitting a query opens the dedicated single-column results screen.
 function submitSearch() {
-  filters.setSearch(searchText.value)
-  cars.reload()
+  const q = searchText.value.trim()
+  router.push({ name: 'search', query: q ? { q } : {} })
 }
 
 function clearSearch() {
   searchText.value = ''
-  filters.setSearch('')
-  cars.reload()
 }
 
 function onFiltersApplied() {

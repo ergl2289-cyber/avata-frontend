@@ -82,7 +82,10 @@ export interface CarListItem {
   date_created: string // ISO datetime (Directus system field)
   city: Pick<City, 'id' | 'name'>
   files: CarFileJunction[]
-  technical_specs: Pick<TechnicalSpecs, 'engine_volume' | 'transmission'> | null
+  technical_specs: Pick<
+    TechnicalSpecs,
+    'engine_volume' | 'transmission' | 'engine_power' | 'fuel_type' | 'drive_type' | 'body_type'
+  > | null
 }
 
 /**
@@ -125,7 +128,11 @@ export interface CarFilters {
   search?: string | null
 }
 
+/** Sort options for the search-results screen. */
+export type SortKey = 'date_desc' | 'price_asc' | 'price_desc' | 'year_desc' | 'mileage_asc'
+
 export interface CarListParams extends CarFilters {
   limit: number
   offset: number
+  sort?: SortKey
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  carSpecLine,
   carTitle,
   formatListingDate,
   formatMileage,
@@ -69,11 +70,53 @@ describe('carTitle', () => {
 
   it('builds brand + model + volume + gearbox', () => {
     expect(
-      carTitle({ ...base, technical_specs: { engine_volume: 2.0, transmission: 'automatic' } }),
+      carTitle({
+        ...base,
+        technical_specs: {
+          engine_volume: 2.0,
+          transmission: 'automatic',
+          engine_power: null,
+          fuel_type: null,
+          drive_type: null,
+          body_type: null,
+        },
+      }),
     ).toBe('BMW 3 серия 2.0 AT')
   })
 
   it('omits missing specs gracefully', () => {
     expect(carTitle({ ...base, technical_specs: null })).toBe('BMW 3 серия')
+  })
+})
+
+describe('carSpecLine', () => {
+  it('builds a full spec line with lowercased tail', () => {
+    expect(
+      carSpecLine({
+        engine_volume: 2.0,
+        transmission: 'automatic',
+        engine_power: 184,
+        fuel_type: 'petrol',
+        drive_type: 'rwd',
+        body_type: 'Седан',
+      }),
+    ).toBe('Бензин 2.0 (184 л.с.), автомат, задний, седан')
+  })
+
+  it('skips missing fields', () => {
+    expect(
+      carSpecLine({
+        engine_volume: 1.6,
+        transmission: null,
+        engine_power: null,
+        fuel_type: 'diesel',
+        drive_type: null,
+        body_type: null,
+      }),
+    ).toBe('Дизель 1.6')
+  })
+
+  it('returns empty string when specs are null', () => {
+    expect(carSpecLine(null)).toBe('')
   })
 })

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { Heart } from 'lucide-vue-next'
 import FavoriteCard from '@/components/car/FavoriteCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
 import { useFavoritesStore } from '@/stores/favorites'
+
+defineOptions({ name: 'FavoritesView' })
 
 const favorites = useFavoritesStore()
 
@@ -25,8 +27,12 @@ function confirmRemove() {
   pendingId.value = null
 }
 
-onMounted(() => {
-  favorites.loadItems()
+// Kept-alive: refresh only when the liked set changed (e.g. a new like added
+// elsewhere). The skeleton only shows when empty, so this updates in place.
+onActivated(() => {
+  const loaded = favorites.items.map((c) => c.id).join(',')
+  const want = favorites.ids.join(',')
+  if (loaded !== want) favorites.loadItems()
 })
 </script>
 

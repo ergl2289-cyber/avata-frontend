@@ -10,6 +10,8 @@ import { useProfileStore } from '@/stores/profile'
 import { useTelegram } from '@/composables/useTelegram'
 import type { City } from '@/types/car'
 
+defineOptions({ name: 'ProfileView' })
+
 const tg = useTelegramStore()
 const profile = useProfileStore()
 const { haptic } = useTelegram()

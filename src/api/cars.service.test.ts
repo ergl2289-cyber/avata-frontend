@@ -39,6 +39,30 @@ describe('getCars (feed, mock = Directus shape)', () => {
     const res = await getCars({ limit: 50, offset: 0, priceFrom: 2_000_000, priceTo: 3_000_000 })
     expect(res.data.every((c) => c.price >= 2_000_000 && c.price <= 3_000_000)).toBe(true)
   })
+
+  it('carries the richer feed specs (fuel/power/drive/body)', async () => {
+    const res = await getCars({ limit: 1, offset: 0, brandId: 1, sort: 'price_desc' })
+    const specs = res.data[0].technical_specs
+    expect(specs?.fuel_type).toBeDefined()
+    expect(specs?.drive_type).toBeDefined()
+    expect(specs?.body_type).toBeDefined()
+  })
+
+  it('sorts by price ascending and descending', async () => {
+    const asc = await getCars({ limit: 50, offset: 0, sort: 'price_asc' })
+    const prices = asc.data.map((c) => c.price)
+    expect([...prices].sort((a, b) => a - b)).toEqual(prices)
+
+    const desc = await getCars({ limit: 50, offset: 0, sort: 'price_desc' })
+    const dPrices = desc.data.map((c) => c.price)
+    expect([...dPrices].sort((a, b) => b - a)).toEqual(dPrices)
+  })
+
+  it('sorts by mileage ascending', async () => {
+    const res = await getCars({ limit: 50, offset: 0, sort: 'mileage_asc' })
+    const m = res.data.map((c) => c.mileage)
+    expect([...m].sort((a, b) => a - b)).toEqual(m)
+  })
 })
 
 describe('getCarsByIds (favorites)', () => {

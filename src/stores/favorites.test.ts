@@ -8,34 +8,34 @@ describe('favorites store', () => {
     setActivePinia(createPinia())
   })
 
-  it('toggle adds new likes to the front (newest first) and reports membership', () => {
+  it('toggle adds new likes to the front (newest first) and reports membership', async () => {
     const fav = useFavoritesStore()
-    fav.toggle(1)
-    fav.toggle(2)
+    await fav.toggle(1)
+    await fav.toggle(2)
     expect(fav.ids).toEqual([2, 1])
     expect(fav.isLiked(1)).toBe(true)
     expect(fav.isLiked(99)).toBe(false)
     expect(fav.count).toBe(2)
   })
 
-  it('toggle removes an already-liked id', () => {
+  it('toggle removes an already-liked id', async () => {
     const fav = useFavoritesStore()
-    fav.toggle(1)
-    expect(fav.toggle(1)).toBe(false)
+    await fav.toggle(1)
+    expect(await fav.toggle(1)).toBe(false)
     expect(fav.ids).toEqual([])
     expect(fav.count).toBe(0)
   })
 
-  it('persists ids to localStorage', () => {
+  it('persists ids to localStorage', async () => {
     const fav = useFavoritesStore()
-    fav.toggle(7)
+    await fav.toggle(7)
     expect(JSON.parse(localStorage.getItem('avata:favorites') ?? '[]')).toEqual([7])
   })
 
   it('loadItems fetches full card data in favorites order', async () => {
     const fav = useFavoritesStore()
-    fav.toggle(2)
-    fav.toggle(5) // ids = [5, 2]
+    await fav.toggle(2)
+    await fav.toggle(5) // ids = [5, 2]
     await fav.loadItems()
     expect(fav.items.map((c) => c.id)).toEqual([5, 2])
     expect(fav.loading).toBe(false)
@@ -43,10 +43,10 @@ describe('favorites store', () => {
 
   it('remove drops the id from both ids and items', async () => {
     const fav = useFavoritesStore()
-    fav.toggle(2)
-    fav.toggle(5)
+    await fav.toggle(2)
+    await fav.toggle(5)
     await fav.loadItems()
-    fav.remove(2)
+    await fav.remove(2)
     expect(fav.ids).toEqual([5])
     expect(fav.items.map((c) => c.id)).toEqual([5])
   })

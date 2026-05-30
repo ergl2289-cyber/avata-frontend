@@ -8,6 +8,13 @@ const routes: RouteRecordRaw[] = [
     meta: { tab: 'home' },
   },
   {
+    path: '/search',
+    name: 'search',
+    component: () => import('@/views/SearchView.vue'),
+    props: (route) => ({ q: route.query.q ?? '' }),
+    meta: { tab: 'home' },
+  },
+  {
     path: '/favorites',
     name: 'favorites',
     component: () => import('@/views/FavoritesView.vue'),
@@ -23,7 +30,10 @@ const routes: RouteRecordRaw[] = [
     path: '/post',
     name: 'post',
     component: () => import('@/views/PostView.vue'),
-    props: (route) => ({ draftId: route.query.draft ?? null }),
+    props: (route) => ({
+      draftId: route.query.draft ?? null,
+      carId: route.query.car ? Number(route.query.car) : null,
+    }),
     meta: { tab: 'post', hideTabBar: true },
   },
   {
@@ -49,7 +59,8 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior() {
-    return { top: 0 }
+  scrollBehavior(_to, _from, savedPosition) {
+    // Restore scroll on back/forward (kept-alive tabs keep their place); top otherwise.
+    return savedPosition ?? { top: 0 }
   },
 })

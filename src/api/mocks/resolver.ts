@@ -3,6 +3,7 @@ import type {
   CarFilters,
   CarListItem,
   MyCarListItem,
+  SortKey,
 } from '@/types/car'
 import type { DirectusItemResponse, DirectusListResponse } from '@/types/directus'
 import { carsMock } from './cars.mock'
@@ -13,6 +14,7 @@ import { citiesMock, regionsMock } from './geo.mock'
 export interface MockParams {
   limit?: number
   offset?: number
+  sort?: SortKey
   filters?: CarFilters
   brandId?: number | null
   /** Fetch specific cars by id, preserving the given order (favorites). */
@@ -21,8 +23,13 @@ export interface MockParams {
   mine?: boolean
 }
 
-/** Simulated network latency so loading/skeleton states are exercised. */
-function delay<T>(value: T, ms = 320): Promise<T> {
+/**
+ * Simulated network latency so loading/skeleton states are exercised. Kept small
+ * for snappy dev navigation; override with VITE_MOCK_DELAY (ms) if you want to
+ * stress-test slow-network skeletons. The real Directus backend has none of this.
+ */
+const MOCK_DELAY = Number(import.meta.env.VITE_MOCK_DELAY ?? 120)
+function delay<T>(value: T, ms = MOCK_DELAY): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms))
 }
 
@@ -42,8 +49,32 @@ function toListItem(c: CarDetail): CarListItem {
       ? {
           engine_volume: c.technical_specs.engine_volume,
           transmission: c.technical_specs.transmission,
+          engine_power: c.technical_specs.engine_power,
+          fuel_type: c.technical_specs.fuel_type,
+          drive_type: c.technical_specs.drive_type,
+          body_type: c.technical_specs.body_type,
         }
       : null,
+  }
+}
+
+/** Sort a filtered list in place per the chosen key (mirrors Directus `sort`). */
+function sortCars(list: CarDetail[], sort: SortKey | undefined): CarDetail[] {
+  if (!sort) return list
+  const by = [...list]
+  switch (sort) {
+    case 'price_asc':
+      return by.sort((a, b) => a.price - b.price)
+    case 'price_desc':
+      return by.sort((a, b) => b.price - a.price)
+    case 'year_desc':
+      return by.sort((a, b) => b.year - a.year)
+    case 'mileage_asc':
+      return by.sort((a, b) => a.mileage - b.mileage)
+    case 'date_desc':
+      return by.sort((a, b) => +new Date(b.date_created) - +new Date(a.date_created))
+    default:
+      return by
   }
 }
 
@@ -72,7 +103,9 @@ export function mockResolver<T>(path: string, params: MockParams = {}): Promise<
   const detailMatch = path.match(/^\/items\/cars\/(\d+)$/)
   if (detailMatch) {
     const id = Number(detailMatch[1])
-    const car = carsMock.find((c) => c.id === id)
+    // The current user's own listings (incl. freshly published) live in myCarsMock;
+    // the public catalogue in carsMock. Detail resolves from either.
+    const car = carsMock.find((c) => c.id === id) ?? myCarsMock.find((c) => c.id === id)
     if (!car) return Promise.reject(new Error(`Car ${id} not found`))
     return delay({ data: car } as DirectusItemResponse<CarDetail>) as Promise<T>
   }
@@ -106,7 +139,10 @@ export function mockResolver<T>(path: string, params: MockParams = {}): Promise<
     }
 
     const filters = params.filters ?? {}
-    const filtered = carsMock.filter((c) => c.is_active && matchesFilters(c, filters))
+    const filtered = sortCars(
+      carsMock.filter((c) => c.is_active && matchesFilters(c, filters)),
+      params.sort,
+    )
     const offset = params.offset ?? 0
     const limit = params.limit ?? 10
     const page = filtered.slice(offset, offset + limit).map(toListItem)

@@ -9,19 +9,36 @@ import StepPrice from '@/components/listing/steps/StepPrice.vue'
 import StepCity from '@/components/listing/steps/StepCity.vue'
 import StepDescription from '@/components/listing/steps/StepDescription.vue'
 import { emptyListingForm, type ListingForm } from '@/types/listing'
-import { useMyListingsStore } from '@/stores/myListings'
+import { useMyListingsStore, detailToForm } from '@/stores/myListings'
+import { getCarById } from '@/api/cars.service'
 import { useTelegram } from '@/composables/useTelegram'
+import type { CarDetail } from '@/types/car'
 
-const props = defineProps<{ draftId: string | null }>()
+const props = defineProps<{ draftId: string | null; carId: number | null }>()
 
 const router = useRouter()
 const store = useMyListingsStore()
 const { haptic, notify } = useTelegram()
 
-// init form (new or from an existing draft)
+// Edit mode: prefill from an existing published listing instead of a draft.
+const isEdit = computed(() => props.carId != null)
+const loadingEdit = ref(props.carId != null)
+let editBase: CarDetail | null = null
+
+// init form (new, from an existing draft, or — async — from a listing being edited)
 const existing = props.draftId ? store.getDraft(props.draftId) : undefined
 const form = reactive<ListingForm>(existing ? structuredClone(existing.form) : emptyListingForm())
 const currentDraftId = ref<string | null>(props.draftId ?? null)
+
+if (props.carId != null) {
+  getCarById(props.carId)
+    .then((res) => {
+      editBase = res.data
+      Object.assign(form, detailToForm(res.data))
+    })
+    .catch(() => notify('error'))
+    .finally(() => (loadingEdit.value = false))
+}
 
 const step = ref(0)
 const direction = ref<'fwd' | 'back'>('fwd')
@@ -38,7 +55,9 @@ const steps = [
 const current = computed(() => steps[step.value])
 const isLast = computed(() => step.value === steps.length - 1)
 const canContinue = computed(() => current.value.valid())
-const continueLabel = computed(() => (isLast.value ? 'Опубликовать' : 'Продолжить'))
+const continueLabel = computed(() =>
+  isLast.value ? (isEdit.value ? 'Сохранить' : 'Опубликовать') : 'Продолжить',
+)
 
 function isFormEmpty(): boolean {
   return (
@@ -65,7 +84,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 watch(
   form,
   () => {
-    if (isFormEmpty()) return
+    if (isEdit.value || isFormEmpty()) return // editing a live listing isn't a draft
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => {
       currentDraftId.value = store.saveDraft(form, currentDraftId.value ?? undefined)
@@ -84,13 +103,19 @@ function goBack() {
     step.value--
     return
   }
-  // first step: persist if there's anything, then leave
-  if (!isFormEmpty()) currentDraftId.value = store.saveDraft(form, currentDraftId.value ?? undefined)
+  // Editing: leave without touching drafts. New listing: persist progress.
+  if (!isEdit.value && !isFormEmpty()) {
+    currentDraftId.value = store.saveDraft(form, currentDraftId.value ?? undefined)
+  }
   router.push({ name: 'listings' })
 }
 
 function saveExit() {
   haptic('light')
+  if (isEdit.value) {
+    saveListing()
+    return
+  }
   if (!isFormEmpty()) {
     currentDraftId.value = store.saveDraft(form, currentDraftId.value ?? undefined)
   }
@@ -105,40 +130,61 @@ function next() {
     haptic('light')
     return
   }
-  publish()
+  if (isEdit.value) saveListing()
+  else publish()
+}
+
+/** Jump to the first invalid step; returns false if the form isn't complete. */
+function ensureValid(): boolean {
+  const firstInvalid = steps.findIndex((s) => !s.valid())
+  if (firstInvalid === -1) return true
+  direction.value = firstInvalid < step.value ? 'back' : 'fwd'
+  step.value = firstInvalid
+  notify('error')
+  return false
 }
 
 function publish() {
-  // all required steps must be valid
-  const ok = steps.every((s) => s.valid())
-  if (!ok) {
-    const firstInvalid = steps.findIndex((s) => !s.valid())
-    direction.value = firstInvalid < step.value ? 'back' : 'fwd'
-    step.value = firstInvalid
-    notify('error')
-    return
-  }
+  if (!ensureValid()) return
   store.publish(form, currentDraftId.value ?? undefined)
+  notify('success')
+  router.push({ name: 'listings', query: { tab: 'moderation' } })
+}
+
+/** Save edits to an existing listing → back to moderation. */
+function saveListing() {
+  if (!ensureValid() || editBase == null) return
+  store.updateListing(editBase.id, form, editBase)
   notify('success')
   router.push({ name: 'listings', query: { tab: 'moderation' } })
 }
 </script>
 
 <template>
-  <StepShell
-    :title="current.title"
-    :subtitle="current.subtitle"
-    :is-first="step === 0"
-    :can-continue="canContinue"
-    :continue-label="continueLabel"
-    @back="goBack"
-    @save-exit="saveExit"
-    @continue="next"
-  >
-    <Transition :name="direction === 'fwd' ? 'slide-fwd' : 'slide-back'" mode="out-in">
-      <component :is="current.component" :key="step" :form="form" />
-    </Transition>
-  </StepShell>
+  <!-- Single root element: a root-level v-if/v-else makes the component a
+       fragment, which breaks the parent <transition mode="out-in">. -->
+  <div class="min-h-dvh bg-bg">
+    <!-- Loading the listing being edited -->
+    <div v-if="loadingEdit" class="flex min-h-dvh items-center justify-center">
+      <span class="h-6 w-6 animate-spin rounded-full border-2 border-text-faint border-t-text" />
+    </div>
+
+    <StepShell
+      v-else
+      :title="current.title"
+      :subtitle="current.subtitle"
+      :is-first="step === 0"
+      :can-continue="canContinue"
+      :continue-label="continueLabel"
+      @back="goBack"
+      @save-exit="saveExit"
+      @continue="next"
+    >
+      <Transition :name="direction === 'fwd' ? 'slide-fwd' : 'slide-back'" mode="out-in">
+        <component :is="current.component" :key="step" :form="form" />
+      </Transition>
+    </StepShell>
+  </div>
 </template>
 
 <style scoped>

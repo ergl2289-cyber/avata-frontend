@@ -22,8 +22,8 @@ function open() {
 }
 function edit() {
   haptic('light')
-  // editing an existing listing reuses the wizard (prefill TBD with backend)
-  router.push({ name: 'car', params: { id: props.car.id } })
+  // editing reuses the creation wizard, prefilled from this listing
+  router.push({ name: 'post', query: { car: props.car.id } })
 }
 </script>
 

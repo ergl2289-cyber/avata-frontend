@@ -5,6 +5,7 @@ import { backend } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 
 const STORAGE_KEY = 'avata:favorites'
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
 
 function load(): number[] {
   try {
@@ -39,8 +40,22 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return ids.value.includes(id)
   }
 
-  /** Toggle like — calls backend API, then updates local cache. */
+  /** Add/remove a like locally (mock/offline mode — no backend). */
+  function toggleLocal(id: number): boolean {
+    if (ids.value.includes(id)) {
+      ids.value = ids.value.filter((x) => x !== id)
+      items.value = items.value.filter((c) => c.id !== id)
+      persist()
+      return false
+    }
+    ids.value = [id, ...ids.value]
+    persist()
+    return true
+  }
+
+  /** Toggle like — server-backed when real; local-only in mock mode. */
   async function toggle(id: number): Promise<boolean> {
+    if (USE_MOCKS) return toggleLocal(id)
     const prev = isLiked(id)
     try {
       const result = await backend.toggleLike(id)
@@ -81,10 +96,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   /** Remove a listing from favorites (used by the Favorites screen). */
   async function remove(id: number) {
-    try {
-      await backend.toggleLike(id)
-    } catch {
-      /* ignore network error */
+    if (!USE_MOCKS) {
+      try {
+        await backend.toggleLike(id)
+      } catch {
+        /* ignore network error — keep local state consistent */
+      }
     }
     ids.value = ids.value.filter((x) => x !== id)
     items.value = items.value.filter((c) => c.id !== id)

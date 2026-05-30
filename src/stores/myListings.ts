@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getMyCars } from '@/api/cars.service'
-import { coverUrl } from '@/api/assets'
-import type { CarFileJunction, MyCarListItem } from '@/types/car'
-import type { DraftListing, ListingForm } from '@/types/listing'
+import { coverUrl, galleryUrls } from '@/api/assets'
+import type { CarDetail, CarFileJunction, MyCarListItem } from '@/types/car'
+import { emptyListingForm, type DraftListing, type ListingForm } from '@/types/listing'
 import { modelsMock } from '@/api/mocks/brands.mock'
 import { citiesMock } from '@/api/mocks/geo.mock'
+import { me, upsertMyCar } from '@/api/mocks/myCars.mock'
+import { invalidateCar } from '@/api/cars.cache'
 
 const DRAFTS_KEY = 'avata:drafts'
 
@@ -90,10 +92,26 @@ export const useMyListingsStore = defineStore('myListings', () => {
     persistDrafts()
   }
 
-  /** Publish a form: remove its draft (if any) and add a pending listing (mock). */
+  /** Publish a new form: drop its draft, persist a pending listing (mock DB). */
   function publish(form: ListingForm, draftId?: string) {
     if (draftId) deleteDraft(draftId)
-    published.value.unshift(formToPending(form))
+    const detail = formToDetail(form)
+    upsertMyCar(detail)
+    published.value.unshift(toMyListItem(detail))
+  }
+
+  /**
+   * Save edits to an existing listing. Re-enters moderation (pending), like the
+   * backend would. `base` is the original detail (preserves stats/created date).
+   */
+  function updateListing(carId: number, form: ListingForm, base: CarDetail) {
+    const detail = formToDetail(form, { ...base, id: carId })
+    upsertMyCar(detail)
+    invalidateCar(carId) // drop any cached (now stale) detail
+    const item = toMyListItem(detail)
+    const i = published.value.findIndex((c) => c.id === carId)
+    if (i >= 0) published.value.splice(i, 1, item)
+    else published.value.unshift(item)
   }
 
   return {
@@ -108,34 +126,97 @@ export const useMyListingsStore = defineStore('myListings', () => {
     saveDraft,
     deleteDraft,
     publish,
+    updateListing,
   }
 })
 
-/* Build a pending MyCarListItem from a form (mock-only; real API does this server-side). */
-function formToPending(form: ListingForm): MyCarListItem {
+/**
+ * Build a full CarDetail from a form (mock-only; the real API does this on the
+ * server). `base` preserves fields the form doesn't carry — id, seller, created
+ * date, stats, and specs not editable in the wizard (engine_power, category).
+ */
+function formToDetail(form: ListingForm, base?: CarDetail): CarDetail {
   const model = modelsMock.find((m) => m.id === form.modelId) ?? modelsMock[0]
   const city = citiesMock.find((c) => c.id === form.cityId) ?? citiesMock[0]
   const files: CarFileJunction[] = form.photos.map((url, i) => ({
-    id: Date.now() + i,
+    id: (base?.files[i]?.id ?? Date.now() + i) as number,
     directus_files_id: { id: url },
   }))
   return {
-    id: Date.now(),
+    id: base?.id ?? Date.now(),
     model,
     year: form.year ?? 0,
     mileage: form.mileage ?? 0,
     price: form.price ?? 0,
     is_active: false,
-    date_created: new Date().toISOString(),
-    city: { id: city.id, name: city.name },
+    date_created: base?.date_created ?? new Date().toISOString(),
+    views_global: base?.views_global ?? 0,
+    likes_global: base?.likes_global ?? 0,
+    moderation_status: 'pending',
+    description: form.description.trim() || null,
+    city,
+    seller: base?.seller ?? me,
     files,
     technical_specs: {
+      vehicle_category: base?.technical_specs?.vehicle_category ?? null,
+      body_type: form.bodyType,
       engine_volume: form.engineVolume,
+      engine_power: base?.technical_specs?.engine_power ?? null,
       transmission: form.transmission,
+      fuel_type: form.fuelType,
+      drive_type: form.driveType,
+      color: form.color,
     },
-    moderation_status: 'pending',
-    views_global: 0,
-    likes_global: 0,
+  }
+}
+
+/** Project a full CarDetail down to the lightweight "my listings" item. */
+function toMyListItem(d: CarDetail): MyCarListItem {
+  return {
+    id: d.id,
+    model: d.model,
+    year: d.year,
+    mileage: d.mileage,
+    price: d.price,
+    is_active: d.is_active,
+    date_created: d.date_created,
+    city: { id: d.city.id, name: d.city.name },
+    files: d.files,
+    technical_specs: d.technical_specs
+      ? {
+          engine_volume: d.technical_specs.engine_volume,
+          transmission: d.technical_specs.transmission,
+          engine_power: d.technical_specs.engine_power,
+          fuel_type: d.technical_specs.fuel_type,
+          drive_type: d.technical_specs.drive_type,
+          body_type: d.technical_specs.body_type,
+        }
+      : null,
+    moderation_status: d.moderation_status,
+    views_global: d.views_global,
+    likes_global: d.likes_global,
+  }
+}
+
+/** Prefill a wizard form from an existing listing (edit mode). */
+export function detailToForm(car: CarDetail): ListingForm {
+  const t = car.technical_specs
+  return {
+    ...emptyListingForm(),
+    photos: galleryUrls(car.files),
+    brandId: car.model.brand.id,
+    modelId: car.model.id,
+    year: car.year,
+    mileage: car.mileage,
+    bodyType: t?.body_type ?? null,
+    transmission: t?.transmission ?? null,
+    fuelType: t?.fuel_type ?? null,
+    driveType: t?.drive_type ?? null,
+    engineVolume: t?.engine_volume ?? null,
+    color: t?.color ?? null,
+    price: car.price,
+    cityId: car.city.id,
+    description: car.description ?? '',
   }
 }
 

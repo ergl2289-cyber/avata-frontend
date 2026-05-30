@@ -8,13 +8,22 @@ const route = useRoute()
 const { open: keyboardOpen } = useKeyboardOpen()
 // hide the fixed tab bar while typing so it doesn't ride up above the keyboard
 const showTabBar = computed(() => !route.meta.hideTabBar && !keyboardOpen.value)
+
+// Tab-root screens stay mounted (like a native app): instant switch, no refetch,
+// scroll preserved. Detail/transient screens (car, search, post) are not cached.
+const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'ProfileView']
 </script>
 
 <template>
-  <div class="min-h-dvh bg-bg text-text">
+  <div class="relative min-h-dvh bg-bg text-text">
     <RouterView v-slot="{ Component }">
-      <transition name="page" mode="out-in">
-        <component :is="Component" />
+      <!-- No "out-in" mode: with <keep-alive> it can deadlock waiting on a leave
+           callback. Enter/leave overlap; the leaving page is positioned absolute
+           (see CSS) so there's no layout jump. -->
+      <transition name="page">
+        <keep-alive :include="KEEP_ALIVE_VIEWS">
+          <component :is="Component" />
+        </keep-alive>
       </transition>
     </RouterView>
     <transition name="tabbar">
@@ -24,19 +33,24 @@ const showTabBar = computed(() => !route.meta.hideTabBar && !keyboardOpen.value)
 </template>
 
 <style>
-.page-enter-active,
-.page-leave-active {
+.page-enter-active {
   transition:
-    opacity 250ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* The leaving page is taken out of flow so it doesn't push the entering one down. */
+.page-leave-active {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transition: opacity 130ms ease-in;
 }
 .page-enter-from {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(5px);
 }
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
 }
 
 /* tab bar slides down out of view when the keyboard opens */

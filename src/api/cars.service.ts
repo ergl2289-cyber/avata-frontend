@@ -11,17 +11,49 @@ import type { DirectusItemResponse, DirectusListResponse } from '@/types/directu
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
 
 /** Reduced field set for the feed (lightweight CarListItem). */
-const LIST_FIELDS = ['id', 'year', 'mileage', 'price', 'is_active', 'date_created',
-  'model.id', 'model.name', 'model.brand.id', 'model.brand.name',
-  'city.id', 'city.name', 'files.id', 'files.directus_files_id.id',
-  'technical_specs.engine_volume', 'technical_specs.transmission']
+const LIST_FIELDS = [
+  'id',
+  'year',
+  'mileage',
+  'price',
+  'is_active',
+  'date_created',
+  'model.id',
+  'model.name',
+  'model.brand.id',
+  'model.brand.name',
+  'city.id',
+  'city.name',
+  'files.id',
+  'files.directus_files_id.id',
+  'technical_specs.engine_volume',
+  'technical_specs.transmission',
+  'technical_specs.engine_power',
+  'technical_specs.fuel_type',
+  'technical_specs.drive_type',
+  'technical_specs.body_type',
+]
 
 /** Deep field set for the listing screen (full CarDetail). */
-const DETAIL_FIELDS = ['*',
-  'model.id', 'model.name', 'model.brand.id', 'model.brand.name',
-  'city.id', 'city.name', 'city.region.id', 'city.region.name',
-  'seller.id', 'seller.tg_id', 'seller.username', 'seller.first_name', 'seller.last_name',
-  'files.id', 'files.directus_files_id.id', 'technical_specs.*']
+const DETAIL_FIELDS = [
+  '*',
+  'model.id',
+  'model.name',
+  'model.brand.id',
+  'model.brand.name',
+  'city.id',
+  'city.name',
+  'city.region.id',
+  'city.region.name',
+  'seller.id',
+  'seller.tg_id',
+  'seller.username',
+  'seller.first_name',
+  'seller.last_name',
+  'files.id',
+  'files.directus_files_id.id',
+  'technical_specs.*',
+]
 
 /* ------------------------------------------------------------------
  * Backend → Directus shape mappers
@@ -37,7 +69,11 @@ function feedItemToList(f: backend.CarListFeedItem): CarListItem {
     date_created: f.date_created,
     model: { id: 0, name: f.model_name, brand: { id: 0, name: f.brand_name } },
     city: { id: 0, name: f.city_name },
-    files: [],
+    // Map the (eventual) cover URL into the M2M file shape the UI expects.
+    files: f.first_photo_url
+      ? [{ id: 0, directus_files_id: { id: f.first_photo_url } }]
+      : [],
+    // The backend feed doesn't carry technical specs yet (see INTEGRATION.md).
     technical_specs: null,
   }
 }
@@ -70,42 +106,49 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
     model: { id: 0, name: d.model_name, brand: { id: 0, name: d.brand_name } },
     city: { id: 0, name: d.city_name, region: d.region_id ? { id: d.region_id, name: '' } : null },
     files: d.photos?.map((p: backend.PhotoInfo) => ({
-      id: 0, directus_files_id: { id: p.id, filename_download: '', title: '', width: 0, height: 0 },
+      id: 0,
+      directus_files_id: { id: p.id, filename_download: '', title: '', width: 0, height: 0 },
     })) ?? [],
     description: null,
     views_global: d.views_global,
     likes_global: d.likes_global,
     moderation_status: d.moderation_status as 'approved' | 'pending' | 'rejected' | 'draft',
     seller,
-    technical_specs: d.technical ? {
-      vehicle_category: d.technical.vehicle_category_name,
-      body_type: d.technical.body_type_name,
-      engine_volume: d.technical.engine_volume,
-      engine_power: d.technical.engine_power,
-      transmission: d.technical.transmission as 'manual' | 'automatic' | 'robot' | 'cvt' | null,
-      fuel_type: d.technical.fuel_type as 'petrol' | 'diesel' | 'electric' | 'hybrid' | null,
-      drive_type: d.technical.drive_type as 'fwd' | 'rwd' | 'awd' | null,
-      color: d.technical.color,
-    } : null,
+    technical_specs: d.technical
+      ? {
+          vehicle_category: d.technical.vehicle_category_name,
+          body_type: d.technical.body_type_name,
+          engine_volume: d.technical.engine_volume,
+          engine_power: d.technical.engine_power,
+          transmission: d.technical.transmission as 'manual' | 'automatic' | 'robot' | 'cvt' | null,
+          fuel_type: d.technical.fuel_type as 'petrol' | 'diesel' | 'electric' | 'hybrid' | null,
+          drive_type: d.technical.drive_type as 'fwd' | 'rwd' | 'awd' | null,
+          color: d.technical.color,
+        }
+      : null,
   }
 }
 
 /* ------------------------------------------------------------------
- * Feed: paginated, optionally filtered.
+ * Feed: paginated, optionally filtered (and sorted).
  * ------------------------------------------------------------------ */
 
 export function getCars(params: CarListParams) {
   if (!USE_MOCKS) {
     return getCarsBackend(params)
   }
-  const { limit, offset, ...filters } = params
+  const { limit, offset, sort, ...filters } = params
   return directusRequest<DirectusListResponse<CarListItem>>('/items/cars', {
-    fields: LIST_FIELDS, limit, offset, filters,
+    fields: LIST_FIELDS,
+    limit,
+    offset,
+    sort,
+    filters,
   })
 }
 
 async function getCarsBackend(params: CarListParams) {
-  const { limit, offset, ...filters } = params
+  const { limit, sort, ...filters } = params
   const result = await backend.getCarsFeed({
     brand_id: filters.brandId,
     model_id: filters.modelId,
@@ -114,9 +157,35 @@ async function getCarsBackend(params: CarListParams) {
     price_min: filters.priceFrom,
     price_max: filters.priceTo,
     city_id: filters.cityId,
+    sort_by: sort,
     limit,
-    // cursor-based: we track offset locally
+    // cursor-based pagination: we track offset locally for now
   })
+  const items = result.items.map(feedItemToList)
+  return {
+    data: items,
+    meta: { filter_count: items.length },
+  } as DirectusListResponse<CarListItem>
+}
+
+/* ------------------------------------------------------------------
+ * Similar listings (detail screen): other cars of the same brand.
+ * ------------------------------------------------------------------ */
+
+export function getSimilarCars(brandId: number, limit = 8) {
+  if (!USE_MOCKS) {
+    return getSimilarCarsBackend(brandId, limit)
+  }
+  return directusRequest<DirectusListResponse<CarListItem>>('/items/cars', {
+    fields: LIST_FIELDS,
+    limit,
+    offset: 0,
+    filters: { brandId },
+  })
+}
+
+async function getSimilarCarsBackend(brandId: number, limit: number) {
+  const result = await backend.getCarsFeed({ brand_id: brandId, limit })
   const items = result.items.map(feedItemToList)
   return {
     data: items,
@@ -136,7 +205,8 @@ export function getCarsByIds(ids: number[]) {
     return Promise.resolve({ data: [], meta: { filter_count: 0 } } as DirectusListResponse<CarListItem>)
   }
   return directusRequest<DirectusListResponse<CarListItem>>('/items/cars', {
-    fields: LIST_FIELDS, ids,
+    fields: LIST_FIELDS,
+    ids,
   })
 }
 
@@ -144,9 +214,13 @@ async function getCarsByIdsBackend(ids: number[]) {
   if (!ids.length) {
     return { data: [], meta: { filter_count: 0 } } as DirectusListResponse<CarListItem>
   }
-  // Fetch liked cars from backend; they come as a feed response
+  // Fetch liked cars from backend; preserve the requested (favorites) order.
   const result = await backend.getLikedCars()
-  const items = result.items.filter((c) => ids.includes(c.id)).map(feedItemToList)
+  const order = new Map(ids.map((id, i) => [id, i]))
+  const items = result.items
+    .filter((c) => order.has(c.id))
+    .sort((a, b) => order.get(a.id)! - order.get(b.id)!)
+    .map(feedItemToList)
   return {
     data: items,
     meta: { filter_count: items.length },

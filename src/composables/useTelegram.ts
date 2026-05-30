@@ -33,13 +33,22 @@ export function useTelegram() {
     }
   }
 
-  /** Open a Telegram chat with a seller by username (used on listing screen). */
-  function openSellerChat(username: string | null) {
-    if (!username) return
+  /**
+   * Open a Telegram chat with a seller (used on the listing screen).
+   * Prefers the public @username link; falls back to a tg://user?id deep link
+   * when the seller has no username. No-op if neither is available.
+   */
+  function openSellerChat(username: string | null, tgId?: string | null) {
+    const url = username
+      ? `https://t.me/${username}`
+      : tgId
+        ? `tg://user?id=${tgId}`
+        : ''
+    if (!url) return
     try {
-      tg.openTelegramLink(`https://t.me/${username}`)
+      tg.openTelegramLink(url)
     } catch {
-      window.open(`https://t.me/${username}`, '_blank')
+      window.open(url, '_blank')
     }
   }
 

@@ -23,6 +23,18 @@ function buildQuery(params: RequestParams): string {
   if (params.fields?.length) sp.set('fields', params.fields.join(','))
   if (params.limit != null) sp.set('limit', String(params.limit))
   if (params.offset != null) sp.set('offset', String(params.offset))
+  if (params.sort) {
+    // Map our sort keys to Directus `sort` field syntax ("-" = descending).
+    const SORT_MAP: Record<string, string> = {
+      date_desc: '-date_created',
+      price_asc: 'price',
+      price_desc: '-price',
+      year_desc: '-year',
+      mileage_asc: 'mileage',
+    }
+    const mapped = SORT_MAP[params.sort]
+    if (mapped) sp.set('sort', mapped)
+  }
 
   const f = params.filters
   if (f) {

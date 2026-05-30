@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { FileText, CheckCircle2, Clock } from 'lucide-vue-next'
 import MyListingCard from '@/components/listing/MyListingCard.vue'
@@ -7,6 +7,8 @@ import DraftCard from '@/components/listing/DraftCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
 import { useMyListingsStore } from '@/stores/myListings'
 import { useTelegram } from '@/composables/useTelegram'
+
+defineOptions({ name: 'MyListingsView' })
 
 type TabKey = 'archive' | 'active' | 'moderation'
 
@@ -21,6 +23,17 @@ const initialTab = (['archive', 'active', 'moderation'] as const).includes(
   ? (route.query.tab as TabKey)
   : 'active'
 const tab = ref<TabKey>(initialTab)
+
+// Kept-alive view: react to ?tab=… changes (e.g. after publishing/editing) since
+// the component isn't re-created on navigation.
+watch(
+  () => route.query.tab,
+  (t) => {
+    if ((['archive', 'active', 'moderation'] as const).includes(t as TabKey)) {
+      tab.value = t as TabKey
+    }
+  },
+)
 
 const tabs = computed(() => [
   { key: 'archive' as const, label: 'Архив', count: store.counts.archive },

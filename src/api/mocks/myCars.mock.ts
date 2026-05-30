@@ -23,7 +23,7 @@ const model = (id: number) => modelsMock.find((m) => m.id === id)!
 const city = (id: number) => citiesMock.find((c) => c.id === id)!
 
 // Current user as the seller of their own listings.
-const me = {
+export const me = {
   id: 'me',
   tg_id: '999000111',
   username: 'me',
@@ -117,3 +117,13 @@ export const myCarsMock: CarDetail[] = [
     },
   },
 ]
+
+/**
+ * Insert or replace one of the current user's listings (publish / edit on mocks).
+ * Mirrors the backend persisting to `cars`; keeps getMyCars + getCarById in sync.
+ */
+export function upsertMyCar(detail: CarDetail): void {
+  const i = myCarsMock.findIndex((c) => c.id === detail.id)
+  if (i >= 0) myCarsMock.splice(i, 1, detail)
+  else myCarsMock.unshift(detail)
+}

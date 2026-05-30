@@ -127,6 +127,31 @@ export function driveLabel(d: DriveType | null | undefined): string {
 }
 
 /**
+ * One-line spec summary for the search-results card, e.g.
+ * "Бензин 2.0 (184 л.с.), автомат, задний, седан". Missing fields are skipped.
+ */
+export function carSpecLine(
+  specs: CarListItem['technical_specs'] | null | undefined,
+): string {
+  if (!specs) return ''
+  const parts: string[] = []
+
+  // Engine: "Бензин 2.0 (184 л.с.)"
+  const engineBits: string[] = []
+  if (specs.fuel_type) engineBits.push(fuelLabel(specs.fuel_type))
+  if (specs.engine_volume != null) engineBits.push(specs.engine_volume.toFixed(1))
+  let engine = engineBits.join(' ')
+  if (specs.engine_power != null) engine += `${engine ? ' ' : ''}(${specs.engine_power} л.с.)`
+  if (engine) parts.push(engine)
+
+  if (specs.transmission) parts.push(transmissionLabel(specs.transmission).toLowerCase())
+  if (specs.drive_type) parts.push(driveLabel(specs.drive_type).toLowerCase())
+  if (specs.body_type) parts.push(specs.body_type.toLowerCase())
+
+  return parts.join(', ')
+}
+
+/**
  * Card title per reference: brand + model [+ engine volume] [+ gearbox code].
  * e.g. "BMW 3 серия 2.0 AT"
  */
