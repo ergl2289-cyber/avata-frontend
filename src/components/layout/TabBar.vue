@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search, Heart, SquarePlus, User } from 'lucide-vue-next'
+import { Search, Heart, SquarePlus, User, Bug } from 'lucide-vue-next'
 import { useTelegram } from '@/composables/useTelegram'
 import { useFavoritesStore } from '@/stores/favorites'
 
@@ -14,6 +14,7 @@ const tabs = [
   { tab: 'favorites', to: '/favorites', label: 'Избранное', icon: Heart },
   { tab: 'post', to: '/listings', label: 'Объявления', icon: SquarePlus },
   { tab: 'profile', to: '/profile', label: 'Профиль', icon: User },
+  { tab: 'apiTest', to: '/dev/api-test', label: 'Тест', icon: Bug },
 ] as const
 
 const activeTab = computed(() => route.meta.tab as string | undefined)

@@ -43,7 +43,6 @@ const routes: RouteRecordRaw[] = [
     path: '/dev/api-test',
     name: 'apiTest',
     component: () => import('@/views/ApiTestView.vue'),
-    meta: { hideTabBar: true },
   },
 ]
 
