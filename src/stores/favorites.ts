@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getCarsByIds } from '@/api/cars.service'
+import { backend } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 
 const STORAGE_KEY = 'avata:favorites'
@@ -16,10 +17,8 @@ function load(): number[] {
 }
 
 /**
- * Liked listings (car_likes). Ids are kept as an ordered array (newest first)
- * and persisted locally so the like toggle works end-to-end on mocks; later this
- * moves behind a favorites.service calling Directus car_likes — the store API
- * (isLiked/toggle/count/items/load/remove) stays the same.
+ * Liked listings (car_likes). When VITE_USE_MOCKS=false, like state is persisted
+ * server-side via POST /api/cars/{id}/like. Local ids array acts as a cache.
  */
 export const useFavoritesStore = defineStore('favorites', () => {
   const ids = ref<number[]>(load())
@@ -32,7 +31,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ids.value))
     } catch {
-      /* storage unavailable — ignore */
+      /* storage unavailable */
     }
   }
 
@@ -40,17 +39,33 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return ids.value.includes(id)
   }
 
-  /** Toggle like. New likes go to the front so the favorites list shows newest first. */
-  function toggle(id: number): boolean {
-    if (ids.value.includes(id)) {
-      ids.value = ids.value.filter((x) => x !== id)
-      items.value = items.value.filter((c) => c.id !== id)
+  /** Toggle like — calls backend API, then updates local cache. */
+  async function toggle(id: number): Promise<boolean> {
+    const prev = isLiked(id)
+    try {
+      const result = await backend.toggleLike(id)
+      if (result.is_liked) {
+        if (!ids.value.includes(id)) {
+          ids.value = [id, ...ids.value]
+        }
+      } else {
+        ids.value = ids.value.filter((x) => x !== id)
+        items.value = items.value.filter((c) => c.id !== id)
+      }
       persist()
-      return false
+      return result.is_liked
+    } catch {
+      // On network error, toggle locally as fallback
+      if (prev) {
+        ids.value = ids.value.filter((x) => x !== id)
+        items.value = items.value.filter((c) => c.id !== id)
+        persist()
+        return false
+      }
+      ids.value = [id, ...ids.value]
+      persist()
+      return true
     }
-    ids.value = [id, ...ids.value]
-    persist()
-    return true
   }
 
   /** Load full card data for all liked ids, preserving order. */
@@ -65,7 +80,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   /** Remove a listing from favorites (used by the Favorites screen). */
-  function remove(id: number) {
+  async function remove(id: number) {
+    try {
+      await backend.toggleLike(id)
+    } catch {
+      /* ignore network error */
+    }
     ids.value = ids.value.filter((x) => x !== id)
     items.value = items.value.filter((c) => c.id !== id)
     persist()

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import WebApp from '@twa-dev/sdk'
+import { login as apiLogin, loginTest, getToken, logout as apiLogout } from '@/api/auth'
 
 export interface TelegramUser {
   telegram_id: number
@@ -17,6 +18,9 @@ export interface TelegramUser {
 export const useTelegramStore = defineStore('telegram', () => {
   const user = ref<TelegramUser | null>(null)
   const initData = ref<string>('')
+  const authLoading = ref(false)
+  const authError = ref<string | null>(null)
+  const isAuthenticated = ref(false)
 
   function init() {
     initData.value = WebApp.initData ?? ''
@@ -32,9 +36,59 @@ export const useTelegramStore = defineStore('telegram', () => {
     }
   }
 
+  /** Send initData to backend — validates HMAC and returns JWT. */
+  async function authenticate(): Promise<boolean> {
+    if (!initData.value) {
+      authError.value = 'Init data not available'
+      return false
+    }
+    if (getToken()) {
+      isAuthenticated.value = true
+      return true
+    }
+    authLoading.value = true
+    authError.value = null
+    try {
+      await apiLogin(initData.value)
+      isAuthenticated.value = true
+      return true
+    } catch (e) {
+      authError.value = e instanceof Error ? e.message : 'Auth failed'
+      return false
+    } finally {
+      authLoading.value = false
+    }
+  }
+
+  /** Development-only auth without real Telegram. */
+  async function devAuth(tgId: number): Promise<boolean> {
+    authLoading.value = true
+    authError.value = null
+    try {
+      await loginTest(tgId)
+      isAuthenticated.value = true
+      return true
+    } catch (e) {
+      authError.value = e instanceof Error ? e.message : 'Auth failed'
+      return false
+    } finally {
+      authLoading.value = false
+    }
+  }
+
+  function logout() {
+    apiLogout()
+    isAuthenticated.value = false
+  }
+
   const fullName = computed(() =>
     user.value ? [user.value.first_name, user.value.last_name].filter(Boolean).join(' ') : '',
   )
 
-  return { user, initData, init, fullName }
+  return {
+    user, initData, init,
+    authLoading, authError, isAuthenticated,
+    authenticate, devAuth, logout,
+    fullName,
+  }
 })
