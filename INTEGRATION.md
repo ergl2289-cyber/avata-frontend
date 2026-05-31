@@ -46,6 +46,7 @@ avata-frontend (Vue 3 / Vite / TypeScript)
 | `createCar(data)` | `/api/cars` | POST | Да |
 | `uploadCarPhotos(carId, files)` | `/api/cars/{id}/photos` | POST (multipart) | Да |
 | `createReview(data)` | `/api/reviews` | POST | Да |
+| `uploadReviewPhotos(reviewId, files)` | `/api/reviews/{id}/photos` | POST (multipart) | Да |
 | `getSellerReviews(id)` | `/api/reviews/seller/{id}` | GET | Нет |
 | `getSellerRating(id)` | `/api/reviews/seller/{id}/rating` | GET | Нет |
 
@@ -218,9 +219,13 @@ filters.cityId      → city_id
 
 ## Чего пока нет (что доделать)
 
-- **Страница деталки машины** (`ListingView.vue`) ✅ **ГОТОВО** — рендерит галерею фото, тех-спеки, продавца, кнопку «Написать продавцу», похожие предложения, кнопку «Поделиться» (шеринг/copy URL)
-- **Браузерная авторизация** ✅ **ГОТОВО** — Telegram OAuth через `POST /api/auth/widget`, deep-link сохранение URL после входа, две кнопки входа
-- **Сохранение черновиков на сервер** — пока localStorage. Нужен `POST /api/cars/drafts` (пока не реализован на бэке)
-- **Поиск** — сейчас substring в моках. Бэкенд пока не поддерживает текстовый поиск
-- **Счётчик «Показано X из Y»** — мета-информация о количестве результатов (бэкенд не отдаёт total_count)
+- **Страница деталки машины** (`ListingView.vue`) ✅ **ГОТОВО**
+- **Браузерная авторизация** ✅ **ГОТОВО** — Telegram OAuth Widget
+- **Профиль продавца** (`SellerView.vue`) ✅ **ГОТОВО** — объявления, отзывы, рейтинг, фото-отзывы
+- **Фото в отзывах** ✅ **ГОТОВО** — multipart-загрузка через `POST /api/reviews/{id}/photos`
+- **Глубокие ссылки** ✅ **ГОТОВО** — авторизация сохраняет URL (`/car/42` и т.д.)
+- **Счётчики лайков/просмотров на карточках** ✅ **ГОТОВО** — реальные данные из БД, обновляются после лайка
+- **Сохранение черновиков на сервер** — пока localStorage
+- **Поиск** — текстовый поиск на бэкенде не реализован
+- **Счётчик «Показано X из Y»** — бэкенд не отдаёт total_count
 - **Offline-режим** — не реализован

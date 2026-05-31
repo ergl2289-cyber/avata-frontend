@@ -32,16 +32,19 @@ Telegram Mini App «Avata» — доска объявлений по прода�
 - Тактильная отдача (`HapticFeedback` через `useTelegram()`) на тапах по кнопкам/карточкам/лайкам.
 - У интерактивных элементов состояние pressed (лёгкое сжатие/затемнение, `active:scale-*`).
 
+## Авторизация
+- Telegram Mini App: `WebApp.initData` → `POST /api/auth/telegram` → JWT (HMAC-валидация на бэке)
+- Браузер: `LoginView.vue` → OAuth-редирект → `POST /api/auth/widget` → JWT (HMAC-SHA256)
+- После обновления страницы: `tgStore.user` восстанавливается из `GET /api/users/me`
+
 ## Данные и архитектура
 - **Все данные — через слой `src/api/` (сервисы).** Компоненты не знают, откуда данные.
-- **Единая точка подмены mock → Directus:** `src/api/directus.ts` (`directusRequest`). Сейчас моки,
-  потом флаг `VITE_USE_MOCKS=false` → реальный Directus. Менять компоненты при этом НЕ нужно.
-- **Моки точно повторяют формат Directus:** обёртка `{ data: [...] }` / `{ data: {...} }`,
-  связи как вложенные объекты, файлы как M2M-junction. Это критично — не упрощать форму.
-- Два типа машины: лёгкий `CarListItem` (лента) и полный `CarDetail` (карточка). Резолвер
-  проецирует полный → лёгкий, имитируя разный `fields` в Directus.
-- Название машины = `model.brand.name + model.name` (+ объём + код КПП в карточке ленты).
-- Поля «на вырост» (`car_legal_data`, source/reviews/rating, phone/rating у users) — НЕ показываем.
+- **Единая точка подмены mock → бэкенд:** флаг `VITE_USE_MOCKS=false`. Справочники (`catalog.service.ts`, `geo.service.ts`) при реальном режиме ходят через FastAPI `/api/references/*` и `/api/geo/*`.
+- **Моки точно повторяют формат Directus:** обёртка `{ data: [...] }` / `{ data: {...} }` — не упрощать форму.
+- Два типа машины: лёгкий `CarListItem` (лента) + полный `CarDetail` (карточка). `feedItemToList()` проекцирует бэкенд → формат фронта.
+- `CarListItem` содержит `views_global`/`likes_global` — реальные цифры из БД.
+- Отзывы: `ReviewItem` включает `photos?: PhotoInfo[]`. Загрузка фото через `POST /api/reviews/{id}/photos`.
+- Название машины = `model.brand.name + model.name`.
 
 ## Безопасность
 - **Токен бота и любые секреты — не часть фронтенда.** Никогда не просить токен, не вставлять в код.

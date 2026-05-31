@@ -5,6 +5,7 @@ import { ChevronLeft, Car, Star, MessageSquare, ImagePlus } from 'lucide-vue-nex
 import CarCard from '@/components/car/CarCard.vue'
 import { backend } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
+import { assetUrl } from '@/api/assets'
 import { useTelegram } from '@/composables/useTelegram'
 import { useTelegramStore } from '@/stores/telegram'
 
@@ -90,8 +91,10 @@ async function submitReview() {
       rating: reviewRating.value,
       text,
     })
+    let uploadedPhotos: backend.PhotoInfo[] = []
     if (reviewFiles.value.length) {
-      await backend.uploadReviewPhotos(res.review_id, reviewFiles.value)
+      const fileIds = await backend.uploadReviewPhotos(res.review_id, reviewFiles.value)
+      uploadedPhotos = fileIds.map(id => ({ id, url: assetUrl(id) }))
     }
     reviewOpen.value = false
     reviewPhotoUrls.value.forEach(u => URL.revokeObjectURL(u))
@@ -109,7 +112,7 @@ async function submitReview() {
       text,
       status: 'pending',
       date_created: new Date().toISOString(),
-      photos: [],
+      photos: uploadedPhotos,
     })
     tab.value = 'reviews'
     reviewCount.value++

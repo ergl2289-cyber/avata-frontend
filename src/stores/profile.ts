@@ -95,6 +95,21 @@ export const useProfileStore = defineStore('profile', () => {
     if (sync && isLoggedIn()) {
       setUserCity(value.id).catch(() => {})
     }
+    if (regionId == null) {
+      loadRegionForCity(value.id)
+    }
+  }
+
+  async function loadRegionForCity(cityId: number) {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+      const raw = await fetch(`${API_URL}/api/geo/cities`).then(r => r.json())
+      const found = (raw as any[]).find((c: any) => c.id === cityId)
+      if (found && found.region && city.value) {
+        city.value = { ...city.value, regionId: found.region }
+        write(CITY_KEY, JSON.stringify(city.value))
+      }
+    } catch { /* ignore */ }
   }
 
   /** Override display name (empty string clears the override → back to Telegram). */
