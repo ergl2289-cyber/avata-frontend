@@ -6,10 +6,12 @@ import CarCard from '@/components/car/CarCard.vue'
 import { backend } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 import { useTelegram } from '@/composables/useTelegram'
+import { useTelegramStore } from '@/stores/telegram'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const { haptic } = useTelegram()
+const tg = useTelegramStore()
 
 const tab = ref<'listings' | 'reviews'>('listings')
 const loading = ref(true)
@@ -81,11 +83,12 @@ function removeReviewFile(idx: number) {
 async function submitReview() {
   reviewSubmitting.value = true
   reviewError.value = null
+  const text = reviewText.value.trim() || null
   try {
     const res = await backend.createReview({
       seller_id: Number(props.id),
       rating: reviewRating.value,
-      text: reviewText.value.trim() || null,
+      text,
     })
     if (reviewFiles.value.length) {
       await backend.uploadReviewPhotos(res.review_id, reviewFiles.value)
@@ -94,14 +97,24 @@ async function submitReview() {
     reviewPhotoUrls.value.forEach(u => URL.revokeObjectURL(u))
     reviewPhotoUrls.value = []
     reviewText.value = ''
-    // Reload reviews + rating
-    await Promise.all([
-      loadReviews(),
-      backend.getSellerRating(Number(props.id)).then(r => {
-        sellerRating.value = r.avg_rating
-        reviewCount.value = r.review_count
-      }),
-    ])
+    // Prepend new review locally (pending wont appear from server)
+    const wasEmpty = reviews.value.length === 0
+    reviews.value.unshift({
+      id: res.review_id,
+      author_id: 0,
+      author_name: tg.user ? [tg.user.first_name, tg.user.last_name].filter(Boolean).join(' ') : 'Вы',
+      seller_id: Number(props.id),
+      car_id: null,
+      rating: reviewRating.value,
+      text,
+      status: 'pending',
+      date_created: new Date().toISOString(),
+      photos: [],
+    })
+    tab.value = 'reviews'
+    reviewCount.value++
+    // Load approved reviews from server if this is the first one
+    if (wasEmpty) loadReviews()
   } catch {
     reviewError.value = 'Не удалось отправить отзыв'
   } finally {
@@ -242,7 +255,12 @@ async function loadReviews() {
             <div class="flex items-center justify-between">
               <span class="text-[14px] font-medium text-text">{{ r.author_name || 'Пользователь' }}</span>
               <span class="flex items-center gap-1 text-[13px] text-text-muted">
-                <Star :size="14" class="text-yellow-400" fill="currentColor" /> {{ r.rating }}
+                <template v-if="r.status === 'pending'">
+                  <span class="text-[11px] text-text-faint">На модерации</span>
+                </template>
+                <template v-else>
+                  <Star :size="14" class="text-yellow-400" fill="currentColor" /> {{ r.rating }}
+                </template>
               </span>
             </div>
             <p v-if="r.text" class="mt-2 text-[14px] leading-relaxed text-text">{{ r.text }}</p>
