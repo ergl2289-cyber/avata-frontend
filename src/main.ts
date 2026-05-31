@@ -23,19 +23,39 @@ app.use(router)
 const tgStore = useTelegramStore()
 tgStore.init()
 
-// Authenticate with backend before mounting.
-// Telegram: validates initData via HMAC → JWT.
-// Browser: check saved JWT → mark as authenticated, otherwise show LoginView.
+// All auth methods processed in order before mounting.
+// 1. OAuth redirect (widget data-auth-url → #tgAuthResult hash)
+// 2. Telegram Mini App initData
+// 3. Saved JWT from previous browser session
 ;(async () => {
-  if (tgStore.initData) {
+  let authed = false
+
+  const hash = window.location.hash
+  if (hash.startsWith('#tgAuthResult=')) {
+    try {
+      const raw = hash.replace('#tgAuthResult=', '')
+      const user = JSON.parse(decodeURIComponent(raw))
+      await tgStore.widgetAuth(user)
+      authed = true
+    } catch {
+      /* widget auth failed — backend may not be deployed yet, clear hash */
+    }
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+  }
+
+  if (!authed && tgStore.initData) {
     await tgStore.authenticate()
-  } else if (getToken()) {
+    authed = tgStore.isAuthenticated
+  }
+
+  if (!authed && getToken()) {
     tgStore.isAuthenticated = true
   }
+
   app.mount('#app')
 })()
 
-// Telegram Login Widget calls this after successful auth in browser mode.
+// Telegram Login Widget popup-mode callback (data-onauth fallback).
 ;(window as any).onTelegramAuth = async (user: any) => {
   await tgStore.widgetAuth(user)
 }
