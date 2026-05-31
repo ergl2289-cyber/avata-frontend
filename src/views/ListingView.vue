@@ -344,9 +344,6 @@ onMounted(load)
     </transition>
   </main>
 </template>
-    </transition>
-  </main>
-</template>
 
 <style scoped>
 .toast-enter-active {
