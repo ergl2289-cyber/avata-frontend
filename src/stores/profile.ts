@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { City } from '@/types/car'
+import { getUserProfile, updateUserProfile, setUserCity, type UserProfile } from '@/api/backend'
+import { isLoggedIn } from '@/api/auth'
 
 const CITY_KEY = 'avata:city'
 const NAME_KEY = 'avata:name'
@@ -38,28 +40,59 @@ function write(key: string, value: string | null) {
 }
 
 /**
- * User preferences that live on the frontend: chosen city (Home placeholder) and
- * optional name/photo overrides (the user can customise what Telegram provides).
- * Persisted locally; later may sync to the user's Directus profile.
+ * User preferences that live on the frontend: chosen city, custom name/photo.
+ * When authenticated, syncs city & name with the backend (PATCH /api/users/{me,me/city}).
  */
 export const useProfileStore = defineStore('profile', () => {
   const city = ref<StoredCity | null>(loadCity())
   const customName = ref<string | null>(read(NAME_KEY))
   const customPhoto = ref<string | null>(read(PHOTO_KEY))
+  const loading = ref(false)
+  const userId = ref<number | null>(null)
+  const regionName = ref<string | null>(null)
 
   const cityId = computed(() => city.value?.id ?? null)
   const cityName = computed(() => city.value?.name ?? null)
+  const hasCity = computed(() => city.value !== null)
 
-  function setCity(value: City | StoredCity) {
+  /** Fetch profile from backend — returns whether city is set. */
+  async function loadFromServer(): Promise<boolean> {
+    if (!isLoggedIn()) return false
+    loading.value = true
+    try {
+      const profile: UserProfile = await getUserProfile()
+      userId.value = profile.id
+      regionName.value = profile.region_name
+      if (profile.city_id && profile.city_name) {
+        setCity({ id: profile.city_id, name: profile.city_name }, false)
+        return true
+      }
+      return false
+    } catch {
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function setCity(value: City | StoredCity, sync = true) {
     city.value = { id: value.id, name: value.name }
     write(CITY_KEY, JSON.stringify(city.value))
+    if (sync && isLoggedIn()) {
+      setUserCity(value.id).catch(() => {})
+    }
   }
 
   /** Override display name (empty string clears the override → back to Telegram). */
-  function setName(value: string) {
+  async function setName(value: string) {
     const v = value.trim()
     customName.value = v || null
     write(NAME_KEY, customName.value)
+    if (isLoggedIn()) {
+      try {
+        await updateUserProfile({ first_name: v || undefined })
+      } catch { /* ignore */ }
+    }
   }
 
   /** Override avatar (data URL); null clears it → back to Telegram photo. */
@@ -68,5 +101,5 @@ export const useProfileStore = defineStore('profile', () => {
     write(PHOTO_KEY, value)
   }
 
-  return { city, cityId, cityName, customName, customPhoto, setCity, setName, setPhoto }
+  return { city, cityId, cityName, customName, customPhoto, loading, userId, regionName, hasCity, setCity, setName, setPhoto, loadFromServer }
 })

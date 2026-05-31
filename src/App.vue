@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TabBar from '@/components/layout/TabBar.vue'
 import { useKeyboardOpen } from '@/composables/useKeyboardOpen'
 import { useTelegramStore } from '@/stores/telegram'
+import { useProfileStore } from '@/stores/profile'
 
 const route = useRoute()
 const { open: keyboardOpen } = useKeyboardOpen()
 const tg = useTelegramStore()
+const profile = useProfileStore()
+
+// Load profile from backend when Telegram auth completes
+watch(() => tg.isAuthenticated, async (authed) => {
+  if (authed) await profile.loadFromServer()
+}, { immediate: true })
 
 const showTabBar = computed(() => !route.meta.hideTabBar && !keyboardOpen.value)
 

@@ -6,12 +6,14 @@ import type { CarListItem } from '@/types/car'
 import { coverUrl } from '@/api/assets'
 import { carTitle, formatMileage, formatPrice } from '@/utils/format'
 import { useTelegram } from '@/composables/useTelegram'
+import { useTelegramStore } from '@/stores/telegram'
 import LikeButton from './LikeButton.vue'
 
 const props = defineProps<{ car: CarListItem }>()
 
 const router = useRouter()
 const { haptic } = useTelegram()
+const tg = useTelegramStore()
 
 const cover = computed(() => coverUrl(props.car.files))
 const title = computed(() => carTitle(props.car))
@@ -20,6 +22,10 @@ const meta = computed(() => `${props.car.year}, ${formatMileage(props.car.mileag
 
 function open() {
   haptic('light')
+  if (!tg.initData) {
+    alert('Откройте объявление в Telegram: @avata_bot')
+    return
+  }
   router.push({ name: 'car', params: { id: props.car.id } })
 }
 </script>

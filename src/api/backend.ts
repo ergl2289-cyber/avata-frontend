@@ -255,12 +255,23 @@ export function createCar(data: CreateCarData): Promise<{ car_id: number }> {
   })
 }
 
-/** Fields editable via PATCH /api/cars/{id} (backend supports this subset). */
+/** Fields editable via PATCH /api/cars/{id}. */
 export interface UpdateCarData {
-  price?: number
+  model_id?: number
+  year?: number
   mileage?: number
+  price?: number
   description?: string | null
+  city_id?: number
   is_active?: boolean
+  transmission?: string | null
+  fuel_type?: string | null
+  drive_type?: string | null
+  color?: string | null
+  engine_volume?: number | null
+  engine_power?: number | null
+  vehicle_category_id?: number | null
+  body_type_id?: number | null
 }
 
 export function updateCar(
