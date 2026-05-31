@@ -66,7 +66,7 @@ export const useProfileStore = defineStore('profile', () => {
       userId.value = profile.id
       regionName.value = profile.region_name
       if (profile.city_id && profile.city_name) {
-        setCity({ id: profile.city_id, name: profile.city_name }, false)
+        setCity({ id: profile.city_id, name: profile.city_name, regionId: null }, false)
         return true
       }
       return false
