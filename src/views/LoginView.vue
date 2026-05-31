@@ -21,7 +21,6 @@ function loadWidget() {
   script.setAttribute('data-telegram-login', 'avata_frontend_bot')
   script.setAttribute('data-size', 'large')
   script.setAttribute('data-onauth', 'onTelegramAuth(user)')
-  script.setAttribute('data-request-access', 'write')
   script.onload = () => {
     loading.value = false
   }
