@@ -104,5 +104,14 @@ export const useProfileStore = defineStore('profile', () => {
     write(PHOTO_KEY, value)
   }
 
-  return { city, cityId, cityName, regionId, customName, customPhoto, loading, userId, regionName, hasCity, setCity, setName, setPhoto, loadFromServer }
+  function clear() {
+    city.value = null
+    customName.value = null
+    customPhoto.value = null
+    localStorage.removeItem(CITY_KEY)
+    localStorage.removeItem(NAME_KEY)
+    localStorage.removeItem(PHOTO_KEY)
+  }
+
+  return { city, cityId, cityName, regionId, customName, customPhoto, loading, userId, regionName, hasCity, setCity, setName, setPhoto, clear, loadFromServer }
 })

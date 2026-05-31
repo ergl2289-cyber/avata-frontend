@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { MoreHorizontal, ChevronRight, MapPin, Pencil } from 'lucide-vue-next'
+import { MoreHorizontal, ChevronRight, MapPin, Pencil, LogOut } from 'lucide-vue-next'
 import CenterDialog from '@/components/ui/CenterDialog.vue'
 import CityPickerSheet from '@/components/geo/CityPickerSheet.vue'
 import EditProfileSheet from '@/components/profile/EditProfileSheet.vue'
@@ -15,6 +16,7 @@ defineOptions({ name: 'ProfileView' })
 const tg = useTelegramStore()
 const profile = useProfileStore()
 const { haptic } = useTelegram()
+const router = useRouter()
 
 const deleteOpen = ref(false)
 const cityOpen = ref(false)
@@ -36,6 +38,14 @@ function openEdit() {
 }
 function onCitySelect(city: City) {
   profile.setCity(city)
+}
+
+function doLogout() {
+  tg.logout()
+  profile.clear()
+  localStorage.removeItem('avata:favorites')
+  localStorage.removeItem('avata:drafts')
+  router.push({ name: 'home' })
 }
 
 function deleteAccount() {
@@ -135,6 +145,18 @@ function deleteAccount() {
             <ChevronRight :size="18" />
           </span>
         </button>
+
+        <template v-if="!tg.initData">
+          <div class="mx-4 h-px bg-border" />
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-surface-2"
+            @click="doLogout"
+          >
+            <LogOut :size="18" :stroke-width="1.8" class="text-text-muted" />
+            <span class="text-[15px] text-text">Выйти</span>
+          </button>
+        </template>
       </div>
     </section>
 

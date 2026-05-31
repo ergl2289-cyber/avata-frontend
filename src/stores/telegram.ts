@@ -102,6 +102,7 @@ export const useTelegramStore = defineStore('telegram', () => {
   function logout() {
     apiLogout()
     isAuthenticated.value = false
+    user.value = null
   }
 
   const fullName = computed(() =>
