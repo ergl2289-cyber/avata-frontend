@@ -42,6 +42,7 @@ if (props.carId != null) {
 
 const step = ref(0)
 const direction = ref<'fwd' | 'back'>('fwd')
+const submitting = ref(false)
 
 const steps = [
   { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => true },
@@ -56,7 +57,13 @@ const current = computed(() => steps[step.value])
 const isLast = computed(() => step.value === steps.length - 1)
 const canContinue = computed(() => current.value.valid())
 const continueLabel = computed(() =>
-  isLast.value ? (isEdit.value ? 'Сохранить' : 'Опубликовать') : 'Продолжить',
+  submitting.value
+    ? 'Подождите…'
+    : isLast.value
+      ? isEdit.value
+        ? 'Сохранить'
+        : 'Опубликовать'
+      : 'Продолжить',
 )
 
 function isFormEmpty(): boolean {
@@ -113,7 +120,7 @@ function goBack() {
 function saveExit() {
   haptic('light')
   if (isEdit.value) {
-    saveListing()
+    void saveListing()
     return
   }
   if (!isFormEmpty()) {
@@ -130,8 +137,8 @@ function next() {
     haptic('light')
     return
   }
-  if (isEdit.value) saveListing()
-  else publish()
+  if (isEdit.value) void saveListing()
+  else void publish()
 }
 
 /** Jump to the first invalid step; returns false if the form isn't complete. */
@@ -144,19 +151,31 @@ function ensureValid(): boolean {
   return false
 }
 
-function publish() {
-  if (!ensureValid()) return
-  store.publish(form, currentDraftId.value ?? undefined)
-  notify('success')
-  router.push({ name: 'listings', query: { tab: 'moderation' } })
+async function publish() {
+  if (submitting.value || !ensureValid()) return
+  submitting.value = true
+  try {
+    await store.publish(form, currentDraftId.value ?? undefined)
+    notify('success')
+    router.push({ name: 'listings', query: { tab: 'moderation' } })
+  } catch {
+    notify('error')
+    submitting.value = false
+  }
 }
 
 /** Save edits to an existing listing → back to moderation. */
-function saveListing() {
-  if (!ensureValid() || editBase == null) return
-  store.updateListing(editBase.id, form, editBase)
-  notify('success')
-  router.push({ name: 'listings', query: { tab: 'moderation' } })
+async function saveListing() {
+  if (submitting.value || !ensureValid() || editBase == null) return
+  submitting.value = true
+  try {
+    await store.updateListing(editBase.id, form, editBase)
+    notify('success')
+    router.push({ name: 'listings', query: { tab: 'moderation' } })
+  } catch {
+    notify('error')
+    submitting.value = false
+  }
 }
 </script>
 
@@ -174,7 +193,7 @@ function saveListing() {
       :title="current.title"
       :subtitle="current.subtitle"
       :is-first="step === 0"
-      :can-continue="canContinue"
+      :can-continue="canContinue && !submitting"
       :continue-label="continueLabel"
       @back="goBack"
       @save-exit="saveExit"

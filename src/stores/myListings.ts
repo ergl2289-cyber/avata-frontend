@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getMyCars } from '@/api/cars.service'
+import { getMyCars, backend } from '@/api/cars.service'
 import { coverUrl, galleryUrls } from '@/api/assets'
 import type { CarDetail, CarFileJunction, MyCarListItem } from '@/types/car'
 import { emptyListingForm, type DraftListing, type ListingForm } from '@/types/listing'
@@ -10,6 +10,7 @@ import { me, upsertMyCar } from '@/api/mocks/myCars.mock'
 import { invalidateCar } from '@/api/cars.cache'
 
 const DRAFTS_KEY = 'avata:drafts'
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
 
 function loadDrafts(): DraftListing[] {
   try {
@@ -92,8 +93,18 @@ export const useMyListingsStore = defineStore('myListings', () => {
     persistDrafts()
   }
 
-  /** Publish a new form: drop its draft, persist a pending listing (mock DB). */
-  function publish(form: ListingForm, draftId?: string) {
+  /**
+   * Publish a new listing. Real mode: POST /api/cars (+ photo upload) → reload.
+   * Mock mode: persist a pending listing into the in-memory mock DB.
+   */
+  async function publish(form: ListingForm, draftId?: string) {
+    if (!USE_MOCKS) {
+      const { car_id } = await backend.createCar(formToCreateData(form))
+      await uploadNewPhotos(car_id, form.photos)
+      if (draftId) deleteDraft(draftId)
+      await load()
+      return
+    }
     if (draftId) deleteDraft(draftId)
     const detail = formToDetail(form)
     upsertMyCar(detail)
@@ -101,10 +112,22 @@ export const useMyListingsStore = defineStore('myListings', () => {
   }
 
   /**
-   * Save edits to an existing listing. Re-enters moderation (pending), like the
-   * backend would. `base` is the original detail (preserves stats/created date).
+   * Save edits to an existing listing. Real mode: PATCH /api/cars/{id} (backend
+   * supports price/mileage/description) + upload any new photos → reload.
+   * Mock mode: rebuild the listing and re-enter moderation (pending).
    */
-  function updateListing(carId: number, form: ListingForm, base: CarDetail) {
+  async function updateListing(carId: number, form: ListingForm, base: CarDetail) {
+    if (!USE_MOCKS) {
+      await backend.updateCar(carId, {
+        price: form.price ?? undefined,
+        mileage: form.mileage ?? undefined,
+        description: form.description.trim() || null,
+      })
+      await uploadNewPhotos(carId, form.photos)
+      invalidateCar(carId)
+      await load()
+      return
+    }
     const detail = formToDetail(form, { ...base, id: carId })
     upsertMyCar(detail)
     invalidateCar(carId) // drop any cached (now stale) detail
@@ -168,6 +191,44 @@ function formToDetail(form: ListingForm, base?: CarDetail): CarDetail {
       color: form.color,
     },
   }
+}
+
+/**
+ * Map a wizard form to the backend create payload.
+ * NOTE: body_type / vehicle_category are collected as names in the wizard but the
+ * backend wants *_id — omitted for now (both optional). TODO: resolve via
+ * /api/references once the wizard picks them by id.
+ */
+function formToCreateData(form: ListingForm): backend.CreateCarData {
+  return {
+    model_id: form.modelId as number,
+    year: form.year ?? 0,
+    mileage: form.mileage ?? 0,
+    price: form.price ?? 0,
+    city_id: form.cityId as number,
+    description: form.description.trim() || null,
+    source: 'selfposted',
+    engine_volume: form.engineVolume,
+    transmission: form.transmission,
+    fuel_type: form.fuelType,
+    drive_type: form.driveType,
+    color: form.color,
+  }
+}
+
+/** Convert a data: URL (wizard photo) into a File for multipart upload. */
+async function dataUrlToFile(dataUrl: string, name: string): Promise<File> {
+  const res = await fetch(dataUrl)
+  const blob = await res.blob()
+  return new File([blob], name, { type: blob.type || 'image/jpeg' })
+}
+
+/** Upload only the freshly-added photos (data: URLs); http ones already exist. */
+async function uploadNewPhotos(carId: number, photos: string[]): Promise<void> {
+  const fresh = photos.filter((p) => p.startsWith('data:'))
+  if (!fresh.length) return
+  const files = await Promise.all(fresh.map((d, i) => dataUrlToFile(d, `photo-${i}.jpg`)))
+  await backend.uploadCarPhotos(carId, files)
 }
 
 /** Project a full CarDetail down to the lightweight "my listings" item. */

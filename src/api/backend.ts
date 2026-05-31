@@ -233,6 +233,7 @@ export interface CreateCarData {
   mileage: number
   price: number
   city_id: number
+  description?: string | null
   source?: string
   vehicle_category_id?: number | null
   body_type_id?: number | null
@@ -250,6 +251,24 @@ export interface CreateCarData {
 export function createCar(data: CreateCarData): Promise<{ car_id: number }> {
   return request<{ car_id: number }>('/api/cars', {
     method: 'POST',
+    json: data,
+  })
+}
+
+/** Fields editable via PATCH /api/cars/{id} (backend supports this subset). */
+export interface UpdateCarData {
+  price?: number
+  mileage?: number
+  description?: string | null
+  is_active?: boolean
+}
+
+export function updateCar(
+  id: number,
+  data: UpdateCarData,
+): Promise<{ car_id: number; updated: string[] }> {
+  return request<{ car_id: number; updated: string[] }>(`/api/cars/${id}`, {
+    method: 'PATCH',
     json: data,
   })
 }
