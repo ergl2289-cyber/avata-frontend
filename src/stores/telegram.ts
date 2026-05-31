@@ -103,6 +103,7 @@ export const useTelegramStore = defineStore('telegram', () => {
     apiLogout()
     isAuthenticated.value = false
     user.value = null
+    sessionStorage.setItem('avata:loggedOut', '1')
   }
 
   const fullName = computed(() =>
