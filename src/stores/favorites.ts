@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getCarsByIds } from '@/api/cars.service'
-import { backend } from '@/api/cars.service'
+import { backend, feedItemToList } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 
 const STORAGE_KEY = 'avata:favorites'
@@ -94,6 +94,22 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
+  /** Sync liked IDs from server — called on auth to replace localStorage state. */
+  async function syncFromServer() {
+    if (USE_MOCKS) return
+    try {
+      const result = await backend.getLikedCars()
+      const serverIds = result.items.map(c => c.id)
+      ids.value = serverIds
+      if (result.items.length) {
+        items.value = result.items.map(feedItemToList)
+      }
+      persist()
+    } catch {
+      /* server unavailable — keep current state */
+    }
+  }
+
   /** Remove a listing from favorites (used by the Favorites screen). */
   async function remove(id: number) {
     if (!USE_MOCKS) {
@@ -108,5 +124,5 @@ export const useFavoritesStore = defineStore('favorites', () => {
     persist()
   }
 
-  return { ids, items, loading, count, isLiked, toggle, loadItems, remove }
+  return { ids, items, loading, count, isLiked, toggle, loadItems, syncFromServer, remove }
 })

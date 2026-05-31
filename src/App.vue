@@ -6,15 +6,20 @@ import LoginView from '@/views/LoginView.vue'
 import { useKeyboardOpen } from '@/composables/useKeyboardOpen'
 import { useTelegramStore } from '@/stores/telegram'
 import { useProfileStore } from '@/stores/profile'
+import { useFavoritesStore } from '@/stores/favorites'
 
 const route = useRoute()
 const { open: keyboardOpen } = useKeyboardOpen()
 const tg = useTelegramStore()
 const profile = useProfileStore()
+const favorites = useFavoritesStore()
 
 // Load profile from backend when Telegram auth completes
 watch(() => tg.isAuthenticated, async (authed) => {
-  if (authed) await profile.loadFromServer()
+  if (authed) {
+    await profile.loadFromServer()
+    favorites.syncFromServer()
+  }
 }, { immediate: true })
 
 const showTabBar = computed(() => !route.meta.hideTabBar && !keyboardOpen.value)

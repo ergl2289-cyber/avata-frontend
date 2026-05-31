@@ -59,7 +59,7 @@ const DETAIL_FIELDS = [
  * Backend → Directus shape mappers
  * ------------------------------------------------------------------ */
 
-function feedItemToList(f: backend.CarListFeedItem): CarListItem {
+export function feedItemToList(f: backend.CarListFeedItem): CarListItem {
   return {
     id: f.id,
     year: f.year,

@@ -27,9 +27,8 @@ function confirmRemove() {
   pendingId.value = null
 }
 
-// Kept-alive: refresh only when the liked set changed (e.g. a new like added
-// elsewhere). The skeleton only shows when empty, so this updates in place.
-onActivated(() => favorites.loadItems())
+// Kept-alive: always sync favorites from server on activation
+onActivated(() => favorites.syncFromServer())
 </script>
 
 <template>
