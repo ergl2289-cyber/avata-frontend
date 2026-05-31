@@ -22,15 +22,12 @@ app.use(router)
 const tgStore = useTelegramStore()
 tgStore.init()
 
-// Authenticate with backend BEFORE mounting the app.
-// Without await — stores fire their requests before JWT is ready → 401 → empty feed.
+// Authenticate with backend before mounting.
+// Telegram: validates initData via HMAC → JWT.
+// Browser: no auth, app works in anonymous mode.
 ;(async () => {
   if (tgStore.initData) {
     await tgStore.authenticate()
-  } else {
-    const DEV_USER_ID = 111111
-    console.log(`[avata] dev mode — logging in as test user ${DEV_USER_ID}`)
-    await tgStore.devAuth(DEV_USER_ID)
   }
   app.mount('#app')
 })()

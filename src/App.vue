@@ -16,20 +16,20 @@ const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'Profil
 
 <template>
   <div class="relative min-h-dvh bg-bg text-text">
-    <!-- Auth loading screen -->
-    <div v-if="tg.authLoading && !tg.isAuthenticated" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
+    <!-- Auth loading — only when we have initData (Telegram) and are authenticating -->
+    <div v-if="tg.initData && tg.authLoading && !tg.isAuthenticated" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
       <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       <p class="text-sm text-text-muted">Входим…</p>
     </div>
-    <!-- Auth error -->
-    <div v-else-if="tg.authError && !tg.isAuthenticated" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
+    <!-- Auth error — only for Telegram mode -->
+    <div v-else-if="tg.initData && tg.authError && !tg.isAuthenticated" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
       <p class="text-sm text-red-400">Ошибка авторизации</p>
       <p class="text-xs text-text-muted">{{ tg.authError }}</p>
-      <button class="rounded-lg bg-primary px-4 py-2 text-sm text-white" @click="tg.initData ? tg.authenticate() : tg.devAuth(111111)">
+      <button class="rounded-lg bg-primary px-4 py-2 text-sm text-white" @click="tg.authenticate()">
         Повторить
       </button>
     </div>
-    <!-- Main app -->
+    <!-- Main app — Telegram (authenticated) or Browser (anonymous) -->
     <template v-else>
       <RouterView v-slot="{ Component }">
         <transition name="page">
