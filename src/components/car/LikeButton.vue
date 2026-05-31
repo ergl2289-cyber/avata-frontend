@@ -2,18 +2,28 @@
 import { computed } from 'vue'
 import { Heart } from 'lucide-vue-next'
 import { useFavoritesStore } from '@/stores/favorites'
+import { useCarsStore } from '@/stores/cars'
+import { useSearchStore } from '@/stores/search'
 import { useTelegram } from '@/composables/useTelegram'
 
 const props = defineProps<{ carId: number }>()
 
 const favorites = useFavoritesStore()
+const cars = useCarsStore()
+const search = useSearchStore()
 const { haptic } = useTelegram()
 
 const liked = computed(() => favorites.isLiked(props.carId))
 
-function onToggle() {
+async function onToggle() {
   haptic('light')
-  favorites.toggle(props.carId)
+  const wasLiked = favorites.isLiked(props.carId)
+  const nowLiked = await favorites.toggle(props.carId)
+  const delta = nowLiked !== wasLiked ? (nowLiked ? 1 : -1) : 0
+  if (delta !== 0) {
+    cars.updateLikeCount(props.carId, delta)
+    search.updateLikeCount(props.carId, delta)
+  }
 }
 </script>
 

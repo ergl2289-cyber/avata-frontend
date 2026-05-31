@@ -63,5 +63,10 @@ export const useCarsStore = defineStore('cars', () => {
     }
   }
 
-  return { items, loading, loadingMore, hasMore, error, reload, loadMore }
+  function updateLikeCount(carId: number, delta: number) {
+    const item = items.value.find(i => i.id === carId)
+    if (item) item.likes_global = Math.max(0, item.likes_global + delta)
+  }
+
+  return { items, loading, loadingMore, hasMore, error, reload, loadMore, updateLikeCount }
 })

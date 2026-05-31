@@ -30,11 +30,7 @@ function confirmRemove() {
 // Kept-alive: refresh only when the liked set changed (e.g. a new like added
 // elsewhere). The skeleton only shows when empty, so this updates in place.
 onMounted(() => favorites.loadItems())
-onActivated(() => {
-  const loaded = favorites.items.map((c) => c.id).join(',')
-  const want = favorites.ids.join(',')
-  if (loaded !== want) favorites.loadItems()
-})
+onActivated(() => favorites.loadItems())
 </script>
 
 <template>

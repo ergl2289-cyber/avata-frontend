@@ -5,7 +5,7 @@ import { ChevronLeft, MessageCircle, Car, Share2, Eye, Heart } from 'lucide-vue-
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
-import { getCarById, getSimilarCars } from '@/api/cars.service'
+import { getCarById, getSimilarCars, backend } from '@/api/cars.service'
 import { getCachedCar, setCachedCar } from '@/api/cars.cache'
 import { galleryUrls } from '@/api/assets'
 import {
@@ -169,6 +169,7 @@ async function load() {
     await nextTick()
     measureDesc()
     loadSimilar(id, cached.model.brand.id)
+    backend.recordView(id).catch(() => {})
     return
   }
 
@@ -181,6 +182,7 @@ async function load() {
     await nextTick()
     measureDesc()
     loadSimilar(id, res.data.model.brand.id)
+    backend.recordView(id).catch(() => {})
   } catch {
     error.value = true
     loading.value = false

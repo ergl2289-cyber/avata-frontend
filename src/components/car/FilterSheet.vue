@@ -99,7 +99,11 @@ function onReset() {
 
 function onApply() {
   haptic('medium')
-  filtersStore.apply({ ...draft })
+  const clean: Record<string, number | null> = {}
+  for (const [k, v] of Object.entries(draft)) {
+    clean[k] = (v as any === '' || v === 0) ? null : v
+  }
+  filtersStore.apply(clean as any)
   emit('apply')
   emit('update:open', false)
 }

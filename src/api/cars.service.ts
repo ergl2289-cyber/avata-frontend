@@ -150,14 +150,14 @@ export function getCars(params: CarListParams) {
 async function getCarsBackend(params: CarListParams) {
   const { limit, sort, ...filters } = params
   const result = await backend.getCarsFeed({
-    brand_id: filters.brandId,
-    model_id: filters.modelId,
-    year_min: filters.yearFrom,
-    year_max: filters.yearTo,
-    price_min: filters.priceFrom,
-    price_max: filters.priceTo,
-    city_id: filters.cityId,
-    region_id: (filters as any).regionId,
+    brand_id: filters.brandId || undefined,
+    model_id: filters.modelId || undefined,
+    year_min: filters.yearFrom || undefined,
+    year_max: filters.yearTo || undefined,
+    price_min: filters.priceFrom || undefined,
+    price_max: filters.priceTo || undefined,
+    city_id: filters.cityId || undefined,
+    region_id: (filters as any).regionId || undefined,
     sort_by: sort,
     limit,
   })

@@ -82,6 +82,11 @@ export const useSearchStore = defineStore('search', () => {
     return reload()
   }
 
+  function updateLikeCount(carId: number, delta: number) {
+    const item = items.value.find(i => i.id === carId)
+    if (item) item.likes_global = Math.max(0, item.likes_global + delta)
+  }
+
   return {
     query,
     sort,
@@ -94,5 +99,6 @@ export const useSearchStore = defineStore('search', () => {
     loadMore,
     setQuery,
     setSort,
+    updateLikeCount,
   }
 })
