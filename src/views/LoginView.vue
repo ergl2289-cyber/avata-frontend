@@ -8,7 +8,7 @@ const redirecting = ref(false)
 function openOAuth() {
   redirecting.value = true
   const origin = window.location.origin
-  const returnTo = window.location.href
+  const returnTo = window.location.origin + window.location.pathname + window.location.search
   const url = `https://oauth.telegram.org/auth?bot_id=${BOT_ID}&origin=${origin}&return_to=${encodeURIComponent(returnTo)}`
   window.location.href = url
 }

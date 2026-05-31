@@ -33,12 +33,12 @@ tgStore.init()
   const hash = window.location.hash
   if (hash.startsWith('#tgAuthResult=')) {
     try {
-      const raw = hash.replace('#tgAuthResult=', '')
-      const user = JSON.parse(decodeURIComponent(raw))
+      const encoded = hash.replace('#tgAuthResult=', '').split('&')[0]
+      const user = JSON.parse(atob(encoded))
       await tgStore.widgetAuth(user)
       authed = true
     } catch {
-      /* widget auth failed — backend may not be deployed yet, clear hash */
+      /* widget auth failed */
     }
     history.replaceState(null, '', window.location.pathname + window.location.search)
   }
