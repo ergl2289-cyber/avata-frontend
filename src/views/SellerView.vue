@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, Car, Star, MessageSquare } from 'lucide-vue-next'
+import { ChevronLeft, Car, Star, MessageSquare, ImagePlus } from 'lucide-vue-next'
 import CarCard from '@/components/car/CarCard.vue'
 import { backend } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
@@ -34,26 +34,65 @@ function switchTab(t: 'listings' | 'reviews') {
 const reviewOpen = ref(false)
 const reviewRating = ref(5)
 const reviewText = ref('')
+const reviewFiles = ref<File[]>([])
 const reviewSubmitting = ref(false)
 const reviewError = ref<string | null>(null)
+const reviewPhotoUrls = ref<string[]>([])
+
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const galleryOpen = ref(false)
+const galleryPhotos = ref<string[]>([])
+const galleryIndex = ref(0)
+
+function openGallery(photos: string[], idx: number) {
+  galleryPhotos.value = photos
+  galleryIndex.value = idx
+  galleryOpen.value = true
+}
 
 function openReviewForm() {
   reviewRating.value = 5
   reviewText.value = ''
+  reviewFiles.value = []
+  reviewPhotoUrls.value = []
   reviewError.value = null
   reviewOpen.value = true
+}
+
+function onFilesSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
+  const newFiles = Array.from(input.files)
+  reviewFiles.value = reviewFiles.value.concat(newFiles)
+  newFiles.forEach(f => {
+    const url = URL.createObjectURL(f)
+    reviewPhotoUrls.value.push(url)
+  })
+  input.value = ''
+}
+
+function removeReviewFile(idx: number) {
+  URL.revokeObjectURL(reviewPhotoUrls.value[idx])
+  reviewPhotoUrls.value.splice(idx, 1)
+  reviewFiles.value.splice(idx, 1)
 }
 
 async function submitReview() {
   reviewSubmitting.value = true
   reviewError.value = null
   try {
-    await backend.createReview({
+    const res = await backend.createReview({
       seller_id: Number(props.id),
       rating: reviewRating.value,
       text: reviewText.value.trim() || null,
     })
+    if (reviewFiles.value.length) {
+      await backend.uploadReviewPhotos(res.review_id, reviewFiles.value)
+    }
     reviewOpen.value = false
+    reviewPhotoUrls.value.forEach(u => URL.revokeObjectURL(u))
+    reviewPhotoUrls.value = []
     reviewText.value = ''
     // Reload reviews + rating
     await Promise.all([
@@ -207,6 +246,17 @@ async function loadReviews() {
               </span>
             </div>
             <p v-if="r.text" class="mt-2 text-[14px] leading-relaxed text-text">{{ r.text }}</p>
+            <div v-if="r.photos?.length" class="mt-3 flex flex-wrap gap-2">
+              <button
+                v-for="(photo, pi) in r.photos"
+                :key="photo.id"
+                type="button"
+                class="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-2 transition-transform active:scale-95"
+                @click="openGallery(r.photos!.map(p => p.url), pi)"
+              >
+                <img :src="photo.url" alt="" class="h-full w-full object-cover" loading="lazy" />
+              </button>
+            </div>
             <p class="mt-2 text-[11px] text-text-faint">{{ new Date(r.date_created).toLocaleDateString('ru-RU') }}</p>
           </div>
         </div>
@@ -248,6 +298,39 @@ async function loadReviews() {
           class="mt-4 w-full resize-none rounded-xl bg-surface-2 px-4 py-3 text-[15px] text-text placeholder:text-text-faint outline-none"
         />
 
+        <!-- Photo picker -->
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="flex h-16 w-16 items-center justify-center rounded-xl bg-surface-2 text-text-muted transition-colors active:bg-surface"
+            @click="fileInput?.click()"
+          >
+            <ImagePlus :size="22" />
+          </button>
+          <div
+            v-for="(url, idx) in reviewPhotoUrls"
+            :key="idx"
+            class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-surface-2"
+          >
+            <img :src="url" alt="" class="h-full w-full object-cover" />
+            <button
+              type="button"
+              class="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white text-[11px] opacity-0 transition-opacity group-hover:opacity-100"
+              @click="removeReviewFile(idx)"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          multiple
+          class="hidden"
+          @change="onFilesSelected"
+        />
+
         <p v-if="reviewError" class="mt-2 text-center text-[13px] text-red-400">{{ reviewError }}</p>
 
         <button
@@ -258,6 +341,40 @@ async function loadReviews() {
         >
           {{ reviewSubmitting ? 'Отправка…' : 'Отправить' }}
         </button>
+      </div>
+    </div>
+
+    <!-- Photo gallery overlay -->
+    <div
+      v-if="galleryOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+      @click="galleryOpen = false"
+    >
+      <div class="relative flex h-full w-full items-center justify-center">
+        <img
+          :src="galleryPhotos[galleryIndex]"
+          alt=""
+          class="max-h-full max-w-full object-contain"
+        />
+        <button
+          v-if="galleryPhotos.length > 1"
+          type="button"
+          class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/20 px-3 py-6 text-white backdrop-blur-sm transition-colors active:bg-white/40"
+          @click.stop="galleryIndex = galleryIndex > 0 ? galleryIndex - 1 : galleryPhotos.length - 1"
+        >
+          ‹
+        </button>
+        <button
+          v-if="galleryPhotos.length > 1"
+          type="button"
+          class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/20 px-3 py-6 text-white backdrop-blur-sm transition-colors active:bg-white/40"
+          @click.stop="galleryIndex = galleryIndex < galleryPhotos.length - 1 ? galleryIndex + 1 : 0"
+        >
+          ›
+        </button>
+      </div>
+      <div class="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 text-sm text-white/60">
+        {{ galleryIndex + 1 }} / {{ galleryPhotos.length }}
       </div>
     </div>
   </main>

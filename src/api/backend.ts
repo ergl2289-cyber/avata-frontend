@@ -340,6 +340,20 @@ export function createReview(data: ReviewData): Promise<{ review_id: number; sta
   })
 }
 
+export async function uploadReviewPhotos(reviewId: number, files: File[]): Promise<string[]> {
+  const token = getToken()
+  const form = new FormData()
+  files.forEach((f) => form.append('files', f))
+  const resp = await fetch(`${API_URL}/api/reviews/${reviewId}/photos`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+  if (!resp.ok) throw new Error(`Review photo upload failed: ${resp.status}`)
+  const data = await resp.json()
+  return data.file_ids as string[]
+}
+
 export interface ReviewItem {
   id: number
   author_id: number
@@ -350,6 +364,7 @@ export interface ReviewItem {
   text: string | null
   status: string
   date_created: string
+  photos?: PhotoInfo[]
 }
 
 export function getSellerReviews(sellerId: number, limit = 20, offset = 0): Promise<ReviewItem[]> {
