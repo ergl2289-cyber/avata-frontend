@@ -134,6 +134,7 @@ export interface CarFiltersParams {
   mileage_max?: number | null
   city_id?: number | null
   region_id?: number | null
+  seller_id?: number | null
   body_type_id?: number | null
   vehicle_category_id?: number | null
   transmission?: string | null

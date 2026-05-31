@@ -69,11 +69,11 @@ function feedItemToList(f: backend.CarListFeedItem): CarListItem {
     date_created: f.date_created,
     model: { id: 0, name: f.model_name, brand: { id: 0, name: f.brand_name } },
     city: { id: 0, name: f.city_name },
-    // Map the (eventual) cover URL into the M2M file shape the UI expects.
     files: f.first_photo_url
       ? [{ id: 0, directus_files_id: { id: f.first_photo_url } }]
       : [],
-    // The backend feed doesn't carry technical specs yet (see INTEGRATION.md).
+    views_global: f.views_global,
+    likes_global: f.likes_global,
     technical_specs: null,
   }
 }

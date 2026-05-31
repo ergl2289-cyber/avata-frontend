@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, Heart } from 'lucide-vue-next'
 import PhotoGallery from './PhotoGallery.vue'
 import LikeButton from './LikeButton.vue'
 import type { CarListItem } from '@/types/car'
@@ -48,6 +49,10 @@ function open() {
       <p class="mt-1.5 text-[13px] text-text-muted">{{ meta }}</p>
       <p class="mt-1.5 text-[13px] text-text-muted">{{ car.city.name }}</p>
       <p class="mt-0.5 text-[12px] text-text-faint">{{ formatListingDate(car.date_created) }}</p>
+      <p class="mt-0.5 flex items-center gap-2 text-[11px] text-text-faint">
+        <span class="flex items-center gap-0.5"><Eye :size="12" /> {{ car.views_global }}</span>
+        <span class="flex items-center gap-0.5"><Heart :size="12" /> {{ car.likes_global }}</span>
+      </p>
     </button>
   </article>
 </template>

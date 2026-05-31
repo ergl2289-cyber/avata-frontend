@@ -54,6 +54,13 @@ const routes: RouteRecordRaw[] = [
     name: 'apiTest',
     component: () => import('@/views/ApiTestView.vue'),
   },
+  {
+    path: '/seller/:id',
+    name: 'seller',
+    component: () => import('@/views/SellerView.vue'),
+    props: true,
+    meta: { hideTabBar: true },
+  },
 ]
 
 export const router = createRouter({

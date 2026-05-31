@@ -45,6 +45,8 @@ function toListItem(c: CarDetail): CarListItem {
     date_created: c.date_created,
     city: { id: c.city.id, name: c.city.name },
     files: c.files,
+    views_global: c.views_global,
+    likes_global: c.likes_global,
     technical_specs: c.technical_specs
       ? {
           engine_volume: c.technical_specs.engine_volume,

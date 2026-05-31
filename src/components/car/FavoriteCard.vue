@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Heart, ImageOff } from 'lucide-vue-next'
+import { Heart, ImageOff, Eye } from 'lucide-vue-next'
 import type { CarListItem } from '@/types/car'
 import { coverUrl } from '@/api/assets'
 import { carTitle, formatListingDate, formatMileage, formatPrice } from '@/utils/format'
@@ -67,6 +67,10 @@ function onHeart() {
       <p class="mt-0.5 text-[13px] text-text-muted">{{ meta }}</p>
       <p class="mt-0.5 truncate text-[13px] text-text-muted">{{ car.city.name }}</p>
       <p v-if="date" class="mt-0.5 text-[12px] text-text-faint">{{ date }}</p>
+      <p class="mt-0.5 flex items-center gap-2 text-[11px] text-text-faint">
+        <span class="flex items-center gap-0.5"><Eye :size="12" /> {{ car.views_global }}</span>
+        <span class="flex items-center gap-0.5"><Heart :size="12" /> {{ car.likes_global }}</span>
+      </p>
 
       <p class="mt-auto pt-1.5 text-[17px] font-bold leading-none text-text">
         {{ formatPrice(car.price) }}

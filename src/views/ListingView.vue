@@ -75,6 +75,14 @@ const sellerName = computed(() => {
 const sellerInitials = computed(() =>
   (car.value?.seller.first_name?.[0] ?? '?').toUpperCase(),
 )
+const sellerId = computed(() => car.value?.seller.id ?? null)
+
+function openSeller() {
+  const sid = sellerId.value
+  if (!sid) return
+  haptic('light')
+  router.push({ name: 'seller', params: { id: sid } })
+}
 
 /** Show the toggle only when the collapsed text is actually clipped. */
 function measureDesc() {
@@ -314,11 +322,12 @@ onMounted(load)
           style="padding-bottom: calc(12px + var(--safe-bottom))"
         >
           <div
-            class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted"
+            class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted cursor-pointer active:scale-95 transition-transform duration-fast"
+            @click="openSeller"
           >
             {{ sellerInitials }}
           </div>
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1 cursor-pointer" @click="openSeller">
             <p class="truncate text-[15px] font-semibold text-text">{{ sellerName }}</p>
             <p class="text-[12px] text-text-muted">Продавец</p>
           </div>

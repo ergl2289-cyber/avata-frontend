@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ImageOff } from 'lucide-vue-next'
+import { ImageOff, Eye, Heart } from 'lucide-vue-next'
 import type { CarListItem } from '@/types/car'
 import { coverUrl } from '@/api/assets'
 import { carTitle, formatMileage, formatPrice } from '@/utils/format'
@@ -56,6 +56,10 @@ function open() {
       <p class="mt-0.5 text-[13px] text-text-muted">{{ meta }}</p>
       <p class="mt-1.5 text-[17px] font-bold leading-none text-text">{{ price }}</p>
       <p class="mt-1.5 text-[13px] text-text-muted line-clamp-1">{{ car.city.name }}</p>
+      <p class="mt-0.5 flex items-center gap-2 text-[11px] text-text-faint">
+        <span class="flex items-center gap-0.5"><Eye :size="12" /> {{ car.views_global }}</span>
+        <span class="flex items-center gap-0.5"><Heart :size="12" /> {{ car.likes_global }}</span>
+      </p>
     </div>
   </article>
 </template>

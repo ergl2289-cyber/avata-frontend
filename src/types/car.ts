@@ -82,6 +82,8 @@ export interface CarListItem {
   date_created: string // ISO datetime (Directus system field)
   city: Pick<City, 'id' | 'name'>
   files: CarFileJunction[]
+  views_global: number
+  likes_global: number
   technical_specs: Pick<
     TechnicalSpecs,
     'engine_volume' | 'transmission' | 'engine_power' | 'fuel_type' | 'drive_type' | 'body_type'
@@ -109,8 +111,6 @@ export interface CarDetail extends Omit<CarListItem, 'technical_specs' | 'city'>
  */
 export interface MyCarListItem extends CarListItem {
   moderation_status: ModerationStatus
-  views_global: number
-  likes_global: number
 }
 
 /* ----------------------------------------------------------------------------
