@@ -101,7 +101,7 @@ function onApply() {
   haptic('medium')
   const clean: Record<string, number | null> = {}
   for (const [k, v] of Object.entries(draft)) {
-    clean[k] = (v as any === '' || v === 0) ? null : v
+    clean[k] = (v as any === '') ? null : v
   }
   filtersStore.apply(clean as any)
   emit('apply')
