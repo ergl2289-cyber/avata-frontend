@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, SlidersHorizontal, X, SearchX } from 'lucide-vue-next'
+import { Search, SlidersHorizontal, X, SearchX, MapPin } from 'lucide-vue-next'
 import CarCard from '@/components/car/CarCard.vue'
 import CarCardSkeleton from '@/components/car/CarCardSkeleton.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
+import CityPickerSheet from '@/components/geo/CityPickerSheet.vue'
 import { useCarsStore } from '@/stores/cars'
 import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
+import { useTelegramStore } from '@/stores/telegram'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
+import type { City } from '@/types/car'
 
 defineOptions({ name: 'HomeView' })
 
@@ -16,18 +19,22 @@ const router = useRouter()
 const cars = useCarsStore()
 const filters = useFiltersStore()
 const profile = useProfileStore()
+const tg = useTelegramStore()
 
 const filterOpen = ref(false)
 const searchText = ref('')
+const cityPickerOpen = ref(false)
 
-// Search placeholder follows the user's chosen city ("Поиск в Сочи").
+// Browser mode — need to pick a city first
+const isBrowser = computed(() => !tg.initData)
+const browserCityId = computed(() => filters.browserRegionId ? filters.browserRegionId : null)
+
 const searchPlaceholder = computed(() =>
   profile.cityName ? `Поиск в ${profile.cityName}` : 'Поиск по объявлениям',
 )
 
 const { sentinel } = useInfiniteScroll(() => cars.loadMore())
 
-// Submitting a query opens the dedicated single-column results screen.
 function submitSearch() {
   const q = searchText.value.trim()
   router.push({ name: 'search', query: q ? { q } : {} })
@@ -41,7 +48,17 @@ function onFiltersApplied() {
   cars.reload()
 }
 
+function onCityPicked(city: City) {
+  cityPickerOpen.value = false
+  filters.browserRegionId = city.id
+  profile.setCity(city, false)
+  cars.reload()
+}
+
 onMounted(() => {
+  if (isBrowser.value && !filters.browserRegionId) {
+    cityPickerOpen.value = true
+  }
   cars.reload()
 })
 </script>
@@ -89,8 +106,18 @@ onMounted(() => {
       </div>
     </header>
 
-    <!-- Feed -->
-    <section class="px-4 pt-1">
+    <!-- Browser: city picker -->
+    <div v-if="isBrowser && !filters.browserRegionId" class="flex flex-col items-center gap-4 px-8 py-20 text-center">
+      <MapPin :size="40" class="text-text-muted" />
+      <p class="text-[15px] text-text">Выберите город, чтобы видеть объявления</p>
+      <button class="rounded-pill bg-primary px-6 py-2.5 text-sm font-medium text-white" @click="cityPickerOpen = true">
+        Выбрать город
+      </button>
+    </div>
+    <CityPickerSheet :open="cityPickerOpen" :selected-id="browserCityId" @update:open="cityPickerOpen = $event" @select="onCityPicked" />
+
+    <!-- Feed (only when city selected or in Telegram) -->
+    <section v-if="!isBrowser || filters.browserRegionId" class="px-4 pt-1">
       <!-- First load skeletons -->
       <div v-if="cars.loading" class="grid grid-cols-2 gap-x-3 gap-y-5">
         <CarCardSkeleton v-for="n in 6" :key="n" />

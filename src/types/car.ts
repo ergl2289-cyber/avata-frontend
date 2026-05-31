@@ -125,6 +125,7 @@ export interface CarFilters {
   priceFrom?: number | null
   priceTo?: number | null
   cityId?: number | null
+  regionId?: number | null
   search?: string | null
 }
 

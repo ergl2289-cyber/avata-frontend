@@ -157,9 +157,9 @@ async function getCarsBackend(params: CarListParams) {
     price_min: filters.priceFrom,
     price_max: filters.priceTo,
     city_id: filters.cityId,
+    region_id: (filters as any).regionId,
     sort_by: sort,
     limit,
-    // cursor-based pagination: we track offset locally for now
   })
   const items = result.items.map(feedItemToList)
   return {

@@ -24,7 +24,12 @@ export const useCarsStore = defineStore('cars', () => {
     offset.value = 0
     hasMore.value = true
     try {
-      const res = await getCars({ limit: PAGE_SIZE, offset: 0, ...filtersStore.filters })
+      const res = await getCars({
+        limit: PAGE_SIZE,
+        offset: 0,
+        ...filtersStore.filters,
+        ...{ regionId: filtersStore.browserRegionId },
+      } as any)
       items.value = res.data
       offset.value = res.data.length
       hasMore.value = res.data.length === PAGE_SIZE
@@ -44,7 +49,8 @@ export const useCarsStore = defineStore('cars', () => {
         limit: PAGE_SIZE,
         offset: offset.value,
         ...filtersStore.filters,
-      })
+        ...{ regionId: filtersStore.browserRegionId },
+      } as any)
       items.value = items.value.concat(res.data)
       offset.value += res.data.length
       hasMore.value = res.data.length === PAGE_SIZE
