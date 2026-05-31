@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { City } from '@/types/car'
 import { getUserProfile, updateUserProfile, setUserCity, type UserProfile } from '@/api/backend'
 import { isLoggedIn } from '@/api/auth'
+import { useTelegramStore } from './telegram'
 
 const CITY_KEY = 'avata:city'
 const NAME_KEY = 'avata:name'
@@ -67,9 +68,19 @@ export const useProfileStore = defineStore('profile', () => {
       regionName.value = profile.region_name
       if (profile.city_id && profile.city_name) {
         setCity({ id: profile.city_id, name: profile.city_name, regionId: null }, false)
-        return true
       }
-      return false
+      // In browser mode (no initData) — populate telegram user from server data
+      const tgStore = useTelegramStore()
+      if (!tgStore.user && !tgStore.initData) {
+        tgStore.user = {
+          telegram_id: profile.tg_id,
+          username: profile.username,
+          first_name: profile.first_name ?? '',
+          last_name: profile.last_name ?? null,
+          photo_url: null,
+        }
+      }
+      return profile.city_id != null && profile.city_name != null
     } catch {
       return false
     } finally {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, MessageCircle, Car, Share2, Eye, Heart } from 'lucide-vue-next'
+import { ChevronLeft, MessageCircle, Car, Share2, Eye, Heart, Star } from 'lucide-vue-next'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
@@ -76,6 +76,8 @@ const sellerInitials = computed(() =>
   (car.value?.seller.first_name?.[0] ?? '?').toUpperCase(),
 )
 const sellerId = computed(() => car.value?.seller.id ?? null)
+const sellerRating = ref<number | null>(null)
+const sellerReviewCount = ref(0)
 
 function openSeller() {
   const sid = sellerId.value
@@ -137,6 +139,14 @@ function showToast(text: string) {
   setTimeout(() => shared.value = false, 2000)
 }
 
+function loadSellerRating(sid: number | null | undefined) {
+  if (!sid) return
+  backend.getSellerRating(sid).then(r => {
+    sellerRating.value = r.avg_rating
+    sellerReviewCount.value = r.review_count
+  }).catch(() => {})
+}
+
 function loadSimilar(id: number, brandId: number) {
   const cached = similarCache.get(id)
   if (cached) {
@@ -169,6 +179,7 @@ async function load() {
     await nextTick()
     measureDesc()
     loadSimilar(id, cached.model.brand.id)
+    loadSellerRating(cached.seller?.id ? Number(cached.seller.id) : null)
     backend.recordView(id).catch(() => {})
     return
   }
@@ -182,6 +193,7 @@ async function load() {
     await nextTick()
     measureDesc()
     loadSimilar(id, res.data.model.brand.id)
+    loadSellerRating(res.data.seller?.id ? Number(res.data.seller.id) : null)
     backend.recordView(id).catch(() => {})
   } catch {
     error.value = true
@@ -331,7 +343,15 @@ onMounted(load)
           </div>
           <div class="min-w-0 flex-1 cursor-pointer" @click="openSeller">
             <p class="truncate text-[15px] font-semibold text-text">{{ sellerName }}</p>
-            <p class="text-[12px] text-text-muted">Продавец</p>
+            <p class="flex items-center gap-1 text-[12px] text-text-muted">
+              <template v-if="sellerRating != null">
+                <Star :size="12" class="text-yellow-400" fill="currentColor" />
+                {{ sellerRating.toFixed(1) }}
+                <span class="text-text-faint">·</span>
+                {{ sellerReviewCount }} {{ sellerReviewCount === 1 ? 'отзыв' : sellerReviewCount < 5 ? 'отзыва' : 'отзывов' }}
+              </template>
+              <template v-else>Продавец</template>
+            </p>
           </div>
           <button
             type="button"

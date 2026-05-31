@@ -31,8 +31,43 @@ function switchTab(t: 'listings' | 'reviews') {
   if (t === 'reviews' && !reviews.value.length) loadReviews()
 }
 
-function writeReview() {
-  // TODO: open review modal
+const reviewOpen = ref(false)
+const reviewRating = ref(5)
+const reviewText = ref('')
+const reviewSubmitting = ref(false)
+const reviewError = ref<string | null>(null)
+
+function openReviewForm() {
+  reviewRating.value = 5
+  reviewText.value = ''
+  reviewError.value = null
+  reviewOpen.value = true
+}
+
+async function submitReview() {
+  reviewSubmitting.value = true
+  reviewError.value = null
+  try {
+    await backend.createReview({
+      seller_id: Number(props.id),
+      rating: reviewRating.value,
+      text: reviewText.value.trim() || null,
+    })
+    reviewOpen.value = false
+    reviewText.value = ''
+    // Reload reviews + rating
+    await Promise.all([
+      loadReviews(),
+      backend.getSellerRating(Number(props.id)).then(r => {
+        sellerRating.value = r.avg_rating
+        reviewCount.value = r.review_count
+      }),
+    ])
+  } catch {
+    reviewError.value = 'Не удалось отправить отзыв'
+  } finally {
+    reviewSubmitting.value = false
+  }
 }
 
 onMounted(async () => {
@@ -150,7 +185,7 @@ async function loadReviews() {
           <button
             type="button"
             class="flex items-center gap-1.5 rounded-pill bg-text px-4 py-2 text-[14px] font-medium text-bg transition-transform duration-fast active:scale-95"
-            @click="writeReview"
+            @click="openReviewForm"
           >
             <MessageSquare :size="15" :stroke-width="2" />
             Написать отзыв
@@ -177,5 +212,53 @@ async function loadReviews() {
         </div>
       </template>
     </section>
+
+    <!-- Review modal -->
+    <div
+      v-if="reviewOpen"
+      class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-8"
+      @click.self="reviewOpen = false"
+    >
+      <div
+        class="w-full max-w-sm rounded-2xl bg-bg px-5 pb-4 pt-5"
+        @click.stop
+      >
+        <h2 class="text-center text-[17px] font-semibold text-text">Написать отзыв</h2>
+
+        <div class="mt-5 flex justify-center gap-1">
+          <button
+            v-for="n in 5"
+            :key="n"
+            type="button"
+            class="p-1 transition-transform duration-fast active:scale-110"
+            @click="reviewRating = n"
+          >
+            <Star
+              :size="32"
+              :class="n <= reviewRating ? 'text-yellow-400' : 'text-text-faint'"
+              :fill="n <= reviewRating ? 'currentColor' : 'none'"
+            />
+          </button>
+        </div>
+
+        <textarea
+          v-model="reviewText"
+          placeholder="Ваш отзыв (необязательно)"
+          rows="4"
+          class="mt-4 w-full resize-none rounded-xl bg-surface-2 px-4 py-3 text-[15px] text-text placeholder:text-text-faint outline-none"
+        />
+
+        <p v-if="reviewError" class="mt-2 text-center text-[13px] text-red-400">{{ reviewError }}</p>
+
+        <button
+          type="button"
+          :disabled="reviewSubmitting"
+          class="mt-4 w-full rounded-pill bg-text py-3 text-[15px] font-semibold text-bg transition-transform duration-fast active:scale-[0.98] disabled:opacity-50"
+          @click="submitReview"
+        >
+          {{ reviewSubmitting ? 'Отправка…' : 'Отправить' }}
+        </button>
+      </div>
+    </div>
   </main>
 </template>
