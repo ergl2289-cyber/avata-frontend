@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { getCars } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 import { useFiltersStore } from './filters'
+import { useProfileStore } from './profile'
 
 const PAGE_SIZE = 8
 
@@ -16,6 +17,7 @@ export const useCarsStore = defineStore('cars', () => {
   const offset = ref(0)
 
   const filtersStore = useFiltersStore()
+  const profileStore = useProfileStore()
 
   /** Reset and load the first page (called on mount and when filters change). */
   async function reload() {
@@ -28,7 +30,7 @@ export const useCarsStore = defineStore('cars', () => {
         limit: PAGE_SIZE,
         offset: 0,
         ...filtersStore.filters,
-        ...{ regionId: filtersStore.browserRegionId },
+        regionId: profileStore.regionId,
       } as any)
       items.value = res.data
       offset.value = res.data.length
@@ -49,7 +51,7 @@ export const useCarsStore = defineStore('cars', () => {
         limit: PAGE_SIZE,
         offset: offset.value,
         ...filtersStore.filters,
-        ...{ regionId: filtersStore.browserRegionId },
+        regionId: profileStore.regionId,
       } as any)
       items.value = items.value.concat(res.data)
       offset.value += res.data.length

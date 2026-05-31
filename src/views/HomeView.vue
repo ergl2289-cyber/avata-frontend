@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, SlidersHorizontal, X, SearchX, MapPin } from 'lucide-vue-next'
 import CarCard from '@/components/car/CarCard.vue'
@@ -27,7 +27,6 @@ const cityPickerOpen = ref(false)
 
 // Browser mode — need to pick a city first
 const isBrowser = computed(() => !tg.initData)
-const browserCityId = computed(() => filters.browserRegionId ? filters.browserRegionId : null)
 
 const searchPlaceholder = computed(() =>
   profile.cityName ? `Поиск в ${profile.cityName}` : 'Поиск по объявлениям',
@@ -48,15 +47,15 @@ function onFiltersApplied() {
   cars.reload()
 }
 
+watch(() => profile.city, () => cars.reload(), { deep: true })
+
 function onCityPicked(city: City) {
   cityPickerOpen.value = false
-  filters.browserRegionId = city.region?.id ?? null
   profile.setCity(city, false)
-  cars.reload()
 }
 
 onMounted(() => {
-  if (isBrowser.value && !filters.browserRegionId) {
+  if (isBrowser.value && !profile.hasCity) {
     cityPickerOpen.value = true
   }
   cars.reload()
@@ -107,17 +106,17 @@ onMounted(() => {
     </header>
 
     <!-- Browser: city picker -->
-    <div v-if="isBrowser && !filters.browserRegionId" class="flex flex-col items-center gap-4 px-8 py-20 text-center">
+    <div v-if="isBrowser && !profile.hasCity" class="flex flex-col items-center gap-4 px-8 py-20 text-center">
       <MapPin :size="40" class="text-text-muted" />
       <p class="text-[15px] text-text">Выберите город, чтобы видеть объявления</p>
       <button class="rounded-pill bg-primary px-6 py-2.5 text-sm font-medium text-white" @click="cityPickerOpen = true">
         Выбрать город
       </button>
     </div>
-    <CityPickerSheet :open="cityPickerOpen" :selected-id="browserCityId" @update:open="cityPickerOpen = $event" @select="onCityPicked" />
+    <CityPickerSheet :open="cityPickerOpen" :selected-id="profile.cityId" @update:open="cityPickerOpen = $event" @select="onCityPicked" />
 
     <!-- Feed (only when city selected or in Telegram) -->
-    <section v-if="!isBrowser || filters.browserRegionId" class="px-4 pt-1">
+    <section v-if="!isBrowser || profile.hasCity" class="px-4 pt-1">
       <!-- First load skeletons -->
       <div v-if="cars.loading" class="grid grid-cols-2 gap-x-3 gap-y-5">
         <CarCardSkeleton v-for="n in 6" :key="n" />

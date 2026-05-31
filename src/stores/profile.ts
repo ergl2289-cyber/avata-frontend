@@ -11,6 +11,7 @@ const PHOTO_KEY = 'avata:photo'
 interface StoredCity {
   id: number
   name: string
+  regionId: number | null
 }
 
 function loadCity(): StoredCity | null {
@@ -53,6 +54,7 @@ export const useProfileStore = defineStore('profile', () => {
 
   const cityId = computed(() => city.value?.id ?? null)
   const cityName = computed(() => city.value?.name ?? null)
+  const regionId = computed(() => city.value?.regionId ?? null)
   const hasCity = computed(() => city.value !== null)
 
   /** Fetch profile from backend — returns whether city is set. */
@@ -76,7 +78,8 @@ export const useProfileStore = defineStore('profile', () => {
   }
 
   function setCity(value: City | StoredCity, sync = true) {
-    city.value = { id: value.id, name: value.name }
+    const regionId = 'region' in value ? value.region?.id ?? null : 'regionId' in value ? value.regionId ?? null : null
+    city.value = { id: value.id, name: value.name, regionId }
     write(CITY_KEY, JSON.stringify(city.value))
     if (sync && isLoggedIn()) {
       setUserCity(value.id).catch(() => {})
@@ -101,5 +104,5 @@ export const useProfileStore = defineStore('profile', () => {
     write(PHOTO_KEY, value)
   }
 
-  return { city, cityId, cityName, customName, customPhoto, loading, userId, regionName, hasCity, setCity, setName, setPhoto, loadFromServer }
+  return { city, cityId, cityName, regionId, customName, customPhoto, loading, userId, regionName, hasCity, setCity, setName, setPhoto, loadFromServer }
 })

@@ -16,7 +16,6 @@ const EMPTY: CarFilters = {
 /** Active feed filters (driven by the search bar + filter bottom sheet). */
 export const useFiltersStore = defineStore('filters', () => {
   const filters = ref<CarFilters>({ ...EMPTY })
-  const browserRegionId = ref<number | null>(null)
 
   const activeCount = computed(() => {
     const f = filters.value
@@ -43,5 +42,5 @@ export const useFiltersStore = defineStore('filters', () => {
     filters.value = { ...EMPTY }
   }
 
-  return { filters, activeCount, browserRegionId, apply, setSearch, reset }
+  return { filters, activeCount, apply, setSearch, reset }
 })

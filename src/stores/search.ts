@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { getCars } from '@/api/cars.service'
 import type { CarListItem, SortKey } from '@/types/car'
 import { useFiltersStore } from './filters'
+import { useProfileStore } from './profile'
 
 const PAGE_SIZE = 8
 
@@ -23,6 +24,7 @@ export const useSearchStore = defineStore('search', () => {
   const offset = ref(0)
 
   const filtersStore = useFiltersStore()
+  const profileStore = useProfileStore()
 
   function params(off: number) {
     return {
@@ -30,6 +32,7 @@ export const useSearchStore = defineStore('search', () => {
       offset: off,
       sort: sort.value,
       ...filtersStore.filters,
+      regionId: profileStore.regionId,
       search: query.value.trim() || null,
     }
   }
