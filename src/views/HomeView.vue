@@ -50,7 +50,7 @@ function onFiltersApplied() {
 
 function onCityPicked(city: City) {
   cityPickerOpen.value = false
-  filters.browserRegionId = city.id
+  filters.browserRegionId = city.region?.id ?? null
   profile.setCity(city, false)
   cars.reload()
 }
