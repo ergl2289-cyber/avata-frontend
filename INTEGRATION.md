@@ -33,6 +33,7 @@ avata-frontend (Vue 3 / Vite / TypeScript)
 | Функция | Эндпоинт FastAPI | Метод | Auth |
 |---------|-----------------|-------|------|
 | `telegramAuth(initData)` | `/api/auth/telegram` | POST | Нет |
+| `loginWidget(widgetUser)` | `/api/auth/widget` | POST | Нет |
 | `getUserProfile()` | `/api/users/me` | GET | Да |
 | `updateUserProfile(...)` | `/api/users/me` | PATCH | Да |
 | `setUserCity(cityId)` | `/api/users/me/city` | PATCH | Да |
@@ -58,14 +59,21 @@ avata-frontend (Vue 3 / Vite / TypeScript)
 5. Фронт сохраняет JWT в `localStorage` (ключ: `avata:jwt`)
 6. Все последующие запросы к FastAPI идут с заголовком `Authorization: Bearer <jwt>`
 
-### В браузере (разработка без Telegram)
-1. `WebApp.initData` — пустая строка (нет Telegram-окружения)
-2. `main.ts` вызывает `tgStore.devAuth(111111)` — тестовый вход
-3. Фронт отправляет `POST /api/auth/test` → `{ tg_id: 111111 }`
-4. Бэкенд создаёт тестового юзера и возвращает JWT
-5. Дальше — как в боевом режиме
+### В браузере (авторизация через Telegram OAuth / Widget)
 
-> **Важно**: `POST /api/auth/test` работает ТОЛЬКО когда на бэкенде `TEST_MODE=true`. В продакшене (`TEST_MODE=false`) возвращает 403.
+1. Пользователь открывает сайт в браузере → `WebApp.initData` пустая (нет Telegram-окружения)
+2. `App.vue` показывает `LoginView.vue` — экран входа с кнопкой «Войти через Telegram»
+3. При клике — редирект на `https://oauth.telegram.org/auth?bot_id=...&return_to=<текущий URL>`
+4. Telegram показывает страницу подтверждения (на телефоне — приложение, на ПК — QR-код)
+5. После подтверждения — редирект обратно на сайт с хэшем `#tgAuthResult=<base64 JSON>`
+6. `main.ts` парсит хэш → `atob` → `JSON.parse` → вызывает `tgStore.widgetAuth(user)`
+7. `widgetAuth()` отправляет `POST /api/auth/widget` с данными виджета (id, first_name, hash и т.д.)
+8. Бэкенд проверяет хэш `HMAC-SHA256(SHA256(bot_token), data_check_string)` → апсерт юзера → JWT
+9. JWT сохраняется в `localStorage` (ключ: `avata:jwt`)
+10. `App.vue` показывает спиннер загрузки профиля, затем — основное приложение
+11. Пользователь остаётся на той же странице (глубокие ссылки: `/car/42`, `/search?q=bmw` и т.д.)
+
+> **Важно**: `POST /api/auth/widget` работает **всегда** и не зависит от `TEST_MODE`. Валидация хэша производится по стандарту Telegram Login Widget (HMAC-SHA256).
 
 ### ID тестового пользователя
 В `main.ts` константа `DEV_USER_ID = 111111`. В сидере этот `tg_id` соответствует пользователю «Иван Петров» с городом «Зеленоград» (регион Москва). У него есть несколько машин и отзывы. Чтобы тестировать без авторизации, можно использовать заголовок `X-Test-User-Id: 1` (работает при TEST_MODE=true на бэке).
@@ -76,11 +84,15 @@ avata-frontend (Vue 3 / Vite / TypeScript)
 src/api/
 ├── directus.ts       # Публичные справочники (НЕ ТРОГАТЬ — работает как было)
 ├── backend.ts        # ★ FastAPI-клиент — все эндпоинты нашей апишки
-├── auth.ts           # ★ JWT: login/logout/getToken (localStorage)
+├── auth.ts           # ★ JWT: login/logout/loginWidget/loginTest/getToken (localStorage)
 ├── cars.service.ts   # ★ Слой адаптации: backend → Directus-формат
 ├── catalog.service.ts # Остаётся через directus.ts
 ├── geo.service.ts     # Остаётся через directus.ts
 └── mocks/             # Остаётся для офлайн-разработки
+
+src/views/
+├── LoginView.vue      # ★ Экран входа через Telegram OAuth (браузерный режим)
+├── ...
 ```
 
 ## Как адаптированы ответы бэкенда
@@ -206,7 +218,8 @@ filters.cityId      → city_id
 
 ## Чего пока нет (что доделать)
 
-- **Страница деталки машины** (`ListingView.vue`) — сейчас плейсхолдер. Нужно рендерить: галерею фото, тех-спеки, продавца, кнопку «Написать продавцу», отзывы
+- **Страница деталки машины** (`ListingView.vue`) ✅ **ГОТОВО** — рендерит галерею фото, тех-спеки, продавца, кнопку «Написать продавцу», похожие предложения, кнопку «Поделиться» (шеринг/copy URL)
+- **Браузерная авторизация** ✅ **ГОТОВО** — Telegram OAuth через `POST /api/auth/widget`, deep-link сохранение URL после входа, две кнопки входа
 - **Сохранение черновиков на сервер** — пока localStorage. Нужен `POST /api/cars/drafts` (пока не реализован на бэке)
 - **Поиск** — сейчас substring в моках. Бэкенд пока не поддерживает текстовый поиск
 - **Счётчик «Показано X из Y»** — мета-информация о количестве результатов (бэкенд не отдаёт total_count)

@@ -2,7 +2,7 @@
 
 Telegram Mini App «Avata» — доска объявлений по продаже авто (аналог Авито внутри Telegram).
 Фронтенд: Vue 3 + TS + Vite + Tailwind + Pinia + Vue Router + @twa-dev/sdk + lucide-vue-next.
-Бэкенд (коллега Игорь): Directus + FastAPI — **ещё не готов, работаем на моках**.
+Бэкенд: Directus + FastAPI — **готов, работает через api.avata.site**. Авторизация: Telegram initData (Mini App) + OAuth Widget (браузер).
 
 Эти правила обязательны и должны соблюдаться во всех новых экранах/компонентах.
 

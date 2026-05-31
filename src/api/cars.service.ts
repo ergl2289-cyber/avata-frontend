@@ -109,7 +109,7 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
       id: 0,
       directus_files_id: { id: p.id, filename_download: '', title: '', width: 0, height: 0 },
     })) ?? [],
-    description: null,
+    description: d.description,
     views_global: d.views_global,
     likes_global: d.likes_global,
     moderation_status: d.moderation_status as 'approved' | 'pending' | 'rejected' | 'draft',
@@ -265,7 +265,7 @@ async function getMyCarsBackend() {
   const result = await backend.getMyCars()
   const items: MyCarListItem[] = result.items.map((f) => ({
     ...feedItemToList(f),
-    moderation_status: 'approved' as const,
+    moderation_status: (f.moderation_status || 'pending') as 'approved' | 'pending' | 'rejected' | 'draft',
     views_global: f.views_global,
     likes_global: f.likes_global,
   }))

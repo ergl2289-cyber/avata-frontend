@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onActivated, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { Heart } from 'lucide-vue-next'
 import FavoriteCard from '@/components/car/FavoriteCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
@@ -29,6 +29,7 @@ function confirmRemove() {
 
 // Kept-alive: refresh only when the liked set changed (e.g. a new like added
 // elsewhere). The skeleton only shows when empty, so this updates in place.
+onMounted(() => favorites.loadItems())
 onActivated(() => {
   const loaded = favorites.items.map((c) => c.id).join(',')
   const want = favorites.ids.join(',')

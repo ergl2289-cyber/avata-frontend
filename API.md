@@ -40,6 +40,25 @@ JWT содержит `{"user_id": 123, "tg_id": 456789}`, подписан `HS25
 
 `is_new_user: true` — фронт должен сразу отправить юзера на экран выбора города.
 
+### POST /api/auth/widget (браузер — Telegram OAuth)
+
+Авторизация через Telegram OAuth/Login Widget для браузерного режима. Работает всегда, не зависит от TEST_MODE.
+
+**Запрос:**
+```json
+{
+  "id": 6857394634,
+  "first_name": "Игорь",
+  "last_name": "Игорев",
+  "username": "geronda94",
+  "photo_url": "https://t.me/i/userpic/320/username.jpg",
+  "auth_date": 1780246456,
+  "hash": "5887b0ece4be7d2c31f53fa8b439e3822eadec243dd680d5e9b096e72beba681"
+}
+```
+
+**Ответ:** такой же как `/auth/telegram` (AuthResponse с JWT и данными юзера).
+
 ---
 
 ## 2. Профиль пользователя
@@ -203,6 +222,8 @@ JWT содержит `{"user_id": 123, "tg_id": 456789}`, подписан `HS25
 | `transmission` | str | КПП: manual, automatic, robot, cvt |
 | `fuel_type` | str | Топливо: petrol, diesel, electric, hybrid |
 | `drive_type` | str | Привод: fwd, rwd, awd |
+| `city_id` | int | Фильтр по конкретному городу |
+| `region_id` | int | Фильтр по региону (для анонимного/браузерного режима) |
 | `sort_by` | str | Сортировка: `date_desc` (по умол.), `price_asc`, `price_desc`, `mileage_asc`, `year_desc` |
 | `cursor` | int | ID последней машины с предыдущей страницы (cursor-пагинация) |
 | `limit` | int | Размер страницы (1–50, по умолчанию 20) |

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, MessageCircle, Car, Share2, Check } from 'lucide-vue-next'
+import { ChevronLeft, MessageCircle, Car, Share2, Eye, Heart } from 'lucide-vue-next'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
@@ -105,6 +105,7 @@ function goBack() {
 }
 
 const shared = ref(false)
+const toastText = ref('')
 
 async function doShare() {
   haptic('medium')
@@ -115,12 +116,17 @@ async function doShare() {
   } catch {
     try {
       await navigator.clipboard.writeText(url)
-      shared.value = true
-      setTimeout(() => shared.value = false, 2000)
+      showToast('Ссылка скопирована')
     } catch {
-      /* clipboard unavailable */
+      showToast('Не удалось скопировать')
     }
   }
+}
+
+function showToast(text: string) {
+  toastText.value = text
+  shared.value = true
+  setTimeout(() => shared.value = false, 2000)
 }
 
 function loadSimilar(id: number, brandId: number) {
@@ -230,8 +236,7 @@ onMounted(load)
                 class="flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition-transform duration-fast ease-out-ios active:scale-90"
                 @click="doShare"
               >
-                <Share2 v-if="!shared" :size="18" />
-                <Check v-else :size="18" class="text-green-300" />
+                <Share2 :size="18" />
               </button>
               <LikeButton :car-id="car.id" />
             </div>
@@ -247,6 +252,10 @@ onMounted(load)
           <h1 class="mt-2 text-[19px] font-semibold leading-snug text-text">{{ title }}</h1>
           <p class="mt-1 text-[14px] text-text-muted">{{ subtitle }}</p>
           <p class="mt-0.5 text-[13px] text-text-muted">{{ car.city.name }}</p>
+          <p class="mt-1.5 flex items-center gap-3 text-[13px] text-text-faint">
+            <span class="flex items-center gap-1"><Eye :size="14" /> {{ car.views_global }}</span>
+            <span class="flex items-center gap-1"><Heart :size="14" /> {{ car.likes_global }}</span>
+          </p>
         </section>
 
         <!-- Specs -->
@@ -324,5 +333,38 @@ onMounted(load)
         </div>
       </div>
     </template>
+
+    <transition name="toast">
+      <div
+        v-if="shared"
+        class="pointer-events-none fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-pill bg-text px-5 py-2.5 text-[14px] text-bg shadow-lg"
+      >
+        {{ toastText }}
+      </div>
+    </transition>
   </main>
 </template>
+    </transition>
+  </main>
+</template>
+
+<style scoped>
+.toast-enter-active {
+  transition:
+    opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast-leave-active {
+  transition:
+    opacity 150ms ease-in,
+    transform 150ms ease-in;
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translate(-50%, 8px);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 4px);
+}
+</style>

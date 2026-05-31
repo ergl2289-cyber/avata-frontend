@@ -115,6 +115,8 @@ export interface CarListFeedItem {
   views_global: number
   likes_global: number
   date_created: string
+  moderation_status?: string
+  is_active?: boolean
 }
 
 export interface CarFeedResponse {
@@ -204,6 +206,7 @@ export interface CarDetailResponse {
   year: number
   mileage: number
   price: number
+  description: string | null
   city_name: string
   region_id: number | null
   views_global: number
