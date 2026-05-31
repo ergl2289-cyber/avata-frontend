@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, MessageCircle, Car } from 'lucide-vue-next'
+import { ChevronLeft, MessageCircle, Car, Share2, Check } from 'lucide-vue-next'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
@@ -104,6 +104,25 @@ function goBack() {
   else router.push({ name: 'home' })
 }
 
+const shared = ref(false)
+
+async function doShare() {
+  haptic('medium')
+  const url = window.location.href
+  const title = car.value ? carTitle(car.value) : 'AVATA'
+  try {
+    await navigator.share({ title, url })
+  } catch {
+    try {
+      await navigator.clipboard.writeText(url)
+      shared.value = true
+      setTimeout(() => shared.value = false, 2000)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+}
+
 function loadSimilar(id: number, brandId: number) {
   const cached = similarCache.get(id)
   if (cached) {
@@ -204,7 +223,16 @@ onMounted(load)
             >
               <ChevronLeft :size="22" />
             </button>
-            <div class="pointer-events-auto">
+            <div class="pointer-events-auto flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Поделиться"
+                class="flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition-transform duration-fast ease-out-ios active:scale-90"
+                @click="doShare"
+              >
+                <Share2 v-if="!shared" :size="18" />
+                <Check v-else :size="18" class="text-green-300" />
+              </button>
               <LikeButton :car-id="car.id" />
             </div>
           </div>

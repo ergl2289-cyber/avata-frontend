@@ -39,6 +39,11 @@ const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'Profil
     </div>
     <!-- Browser mode, not authenticated → Login via Telegram Widget -->
     <LoginView v-else-if="!tg.initData && !tg.isAuthenticated" />
+    <!-- Profile loading after browser auth — wait for city/profile from server -->
+    <div v-else-if="!tg.initData && profile.loading" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <p class="text-sm text-text-muted">Загрузка профиля…</p>
+    </div>
     <!-- Main app — Telegram (authenticated) or Browser (authenticated) -->
     <template v-else>
       <RouterView v-slot="{ Component }">
