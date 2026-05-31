@@ -51,7 +51,7 @@ watch(() => profile.city, () => cars.reload(), { deep: true })
 
 function onCityPicked(city: City) {
   cityPickerOpen.value = false
-  profile.setCity(city, false)
+  profile.setCity(city)
 }
 
 onMounted(() => {

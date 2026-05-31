@@ -2,6 +2,7 @@
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TabBar from '@/components/layout/TabBar.vue'
+import LoginView from '@/views/LoginView.vue'
 import { useKeyboardOpen } from '@/composables/useKeyboardOpen'
 import { useTelegramStore } from '@/stores/telegram'
 import { useProfileStore } from '@/stores/profile'
@@ -36,7 +37,9 @@ const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'Profil
         Повторить
       </button>
     </div>
-    <!-- Main app — Telegram (authenticated) or Browser (anonymous) -->
+    <!-- Browser mode, not authenticated → Login via Telegram Widget -->
+    <LoginView v-else-if="!tg.initData && !tg.isAuthenticated" />
+    <!-- Main app — Telegram (authenticated) or Browser (authenticated) -->
     <template v-else>
       <RouterView v-slot="{ Component }">
         <transition name="page">

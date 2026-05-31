@@ -4,6 +4,7 @@ import WebApp from '@twa-dev/sdk'
 import App from './App.vue'
 import { router } from './router'
 import { useTelegramStore } from './stores/telegram'
+import { getToken } from './api/auth'
 import './style.css'
 
 // Telegram lifecycle. Single dark theme — we don't follow colorScheme.
@@ -24,10 +25,17 @@ tgStore.init()
 
 // Authenticate with backend before mounting.
 // Telegram: validates initData via HMAC → JWT.
-// Browser: no auth, app works in anonymous mode.
+// Browser: check saved JWT → mark as authenticated, otherwise show LoginView.
 ;(async () => {
   if (tgStore.initData) {
     await tgStore.authenticate()
+  } else if (getToken()) {
+    tgStore.isAuthenticated = true
   }
   app.mount('#app')
 })()
+
+// Telegram Login Widget calls this after successful auth in browser mode.
+;(window as any).onTelegramAuth = async (user: any) => {
+  await tgStore.widgetAuth(user)
+}

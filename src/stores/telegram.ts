@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import WebApp from '@twa-dev/sdk'
-import { login as apiLogin, loginTest, getToken, logout as apiLogout } from '@/api/auth'
+import { login as apiLogin, loginTest, loginWidget, getToken, logout as apiLogout, type WidgetUser } from '@/api/auth'
 
 export interface TelegramUser {
   telegram_id: number
@@ -76,6 +76,29 @@ export const useTelegramStore = defineStore('telegram', () => {
     }
   }
 
+  /** Browser Widget auth — user from Telegram Login Widget. */
+  async function widgetAuth(widgetUser: WidgetUser): Promise<boolean> {
+    authLoading.value = true
+    authError.value = null
+    try {
+      await loginWidget(widgetUser)
+      user.value = {
+        telegram_id: widgetUser.id,
+        username: widgetUser.username ?? null,
+        first_name: widgetUser.first_name ?? widgetUser.id.toString(),
+        last_name: widgetUser.last_name ?? null,
+        photo_url: widgetUser.photo_url ?? null,
+      }
+      isAuthenticated.value = true
+      return true
+    } catch (e) {
+      authError.value = e instanceof Error ? e.message : 'Widget auth failed'
+      return false
+    } finally {
+      authLoading.value = false
+    }
+  }
+
   function logout() {
     apiLogout()
     isAuthenticated.value = false
@@ -88,7 +111,7 @@ export const useTelegramStore = defineStore('telegram', () => {
   return {
     user, initData, init,
     authLoading, authError, isAuthenticated,
-    authenticate, devAuth, logout,
+    authenticate, devAuth, widgetAuth, logout,
     fullName,
   }
 })

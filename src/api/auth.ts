@@ -45,6 +45,30 @@ export async function loginTest(tgId: number): Promise<string> {
   return data.token
 }
 
+export interface WidgetUser {
+  id: number
+  first_name?: string
+  last_name?: string
+  username?: string
+  photo_url?: string
+  auth_date: number
+  hash: string
+}
+
+export async function loginWidget(user: WidgetUser): Promise<string> {
+  const resp = await fetch(`${API_URL}/api/auth/widget`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user),
+  })
+  if (!resp.ok) {
+    throw new Error(`Widget auth failed: ${resp.status}`)
+  }
+  const data = await resp.json()
+  setToken(data.token)
+  return data.token
+}
+
 export function logout(): void {
   clearToken()
 }
