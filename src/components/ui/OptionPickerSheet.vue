@@ -2,9 +2,11 @@
 /**
  * Single-level option picker built on the shared BottomSheet (see CLAUDE.md —
  * all sheets go through one component). Replaces native <select> dropdowns so
- * the look is consistent across platforms. For multi-level use CityPickerSheet.
+ * the look is consistent across platforms. Long lists get a live search box.
+ * For multi-level use CityPickerSheet.
  */
-import { Check } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { Check, Search } from 'lucide-vue-next'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
 import { useTelegram } from '@/composables/useTelegram'
 
@@ -13,7 +15,7 @@ interface Option {
   name: string
 }
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   title?: string
   options: Option[]
@@ -22,6 +24,23 @@ defineProps<{
 const emit = defineEmits<{ 'update:open': [v: boolean]; select: [option: Option] }>()
 
 const { haptic } = useTelegram()
+
+const query = ref('')
+
+// Only bother with a search box once the list is long enough to scroll.
+const showSearch = computed(() => props.options.length > 6)
+
+const filtered = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  if (!q) return props.options
+  return props.options.filter((o) => o.name.toLowerCase().includes(q))
+})
+
+// Reset the query each time the sheet (re)opens.
+watch(
+  () => props.open,
+  () => (query.value = ''),
+)
 
 function choose(o: Option) {
   haptic('light')
@@ -32,8 +51,22 @@ function choose(o: Option) {
 
 <template>
   <BottomSheet :open="open" :title="title" @update:open="emit('update:open', $event)">
+    <!-- Live search (sticky) — full-bleed within the sheet's padded scroll area -->
+    <div v-if="showSearch" class="sticky top-0 z-10 -mx-5 mb-1 bg-surface px-5 pb-2.5 pt-0.5">
+      <div class="relative">
+        <Search :size="18" class="pointer-events-none absolute left-3.5 top-3 text-text-muted" />
+        <input
+          v-model="query"
+          type="search"
+          enterkeyhint="search"
+          placeholder="Поиск"
+          class="w-full rounded-pill bg-surface-2 py-2.5 pl-11 pr-4 text-[15px] text-text placeholder:text-text-muted outline-none"
+        />
+      </div>
+    </div>
+
     <button
-      v-for="o in options"
+      v-for="o in filtered"
       :key="o.id"
       type="button"
       class="flex w-full items-center justify-between border-b border-border/60 py-3.5 text-left active:opacity-70"
@@ -42,7 +75,8 @@ function choose(o: Option) {
       <span class="text-[15px] text-text">{{ o.name }}</span>
       <Check v-if="selectedId === o.id" :size="18" class="text-text" />
     </button>
-    <p v-if="!options.length" class="py-10 text-center text-[14px] text-text-muted">
+
+    <p v-if="!filtered.length" class="py-10 text-center text-[14px] text-text-muted">
       Ничего не найдено
     </p>
   </BottomSheet>
