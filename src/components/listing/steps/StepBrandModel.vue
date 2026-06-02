@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import SelectField from '@/components/ui/SelectField.vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import PickerField from '@/components/ui/PickerField.vue'
+import OptionPickerSheet from '@/components/ui/OptionPickerSheet.vue'
 import { getBrands, getModels } from '@/api/catalog.service'
 import type { CarBrand, CarModel } from '@/types/car'
 import type { ListingForm } from '@/types/listing'
@@ -9,6 +10,15 @@ const props = defineProps<{ form: ListingForm }>()
 
 const brands = ref<CarBrand[]>([])
 const models = ref<CarModel[]>([])
+const brandOpen = ref(false)
+const modelOpen = ref(false)
+
+const brandName = computed(
+  () => brands.value.find((b) => b.id === props.form.brandId)?.name ?? null,
+)
+const modelName = computed(
+  () => models.value.find((m) => m.id === props.form.modelId)?.name ?? null,
+)
 
 async function loadModels() {
   models.value = props.form.brandId ? (await getModels(props.form.brandId)).data : []
@@ -27,18 +37,47 @@ watch(
     loadModels()
   },
 )
+
+function pickBrand(b: { id: number }) {
+  props.form.brandId = b.id
+}
+function pickModel(m: { id: number }) {
+  props.form.modelId = m.id
+}
+function openModel() {
+  if (props.form.brandId) modelOpen.value = true
+}
 </script>
 
 <template>
   <div class="space-y-4">
-    <SelectField v-model="form.brandId" label="Марка">
-      <option :value="null">Выберите марку</option>
-      <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
-    </SelectField>
+    <PickerField
+      label="Марка"
+      placeholder="Выберите марку"
+      :value="brandName"
+      @open="brandOpen = true"
+    />
+    <PickerField
+      label="Модель"
+      placeholder="Выберите модель"
+      :value="modelName"
+      :disabled="!form.brandId"
+      @open="openModel"
+    />
 
-    <SelectField v-model="form.modelId" label="Модель" :disabled="!form.brandId">
-      <option :value="null">Выберите модель</option>
-      <option v-for="m in models" :key="m.id" :value="m.id">{{ m.name }}</option>
-    </SelectField>
+    <OptionPickerSheet
+      v-model:open="brandOpen"
+      title="Выберите марку"
+      :options="brands"
+      :selected-id="form.brandId"
+      @select="pickBrand"
+    />
+    <OptionPickerSheet
+      v-model:open="modelOpen"
+      title="Выберите модель"
+      :options="models"
+      :selected-id="form.modelId"
+      @select="pickModel"
+    />
   </div>
 </template>

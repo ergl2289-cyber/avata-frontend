@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { FileText, CheckCircle2, Clock } from 'lucide-vue-next'
 import MyListingCard from '@/components/listing/MyListingCard.vue'
 import DraftCard from '@/components/listing/DraftCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useMyListingsStore } from '@/stores/myListings'
 import { useTelegram } from '@/composables/useTelegram'
 
@@ -44,9 +44,9 @@ const tabs = computed(() => [
 const empty = computed(
   () =>
     ({
-      archive: { icon: FileText, text: 'Нет черновиков', hint: 'Начатые объявления сохранятся здесь' },
-      active: { icon: CheckCircle2, text: 'Нет активных объявлений', hint: 'Опубликуйте первое объявление' },
-      moderation: { icon: Clock, text: 'Нет объявлений на модерации', hint: 'Здесь будут объявления на проверке' },
+      archive: { title: 'Черновиков нет', subtitle: 'Незаконченные объявления сохранятся здесь' },
+      active: { title: 'Активных объявлений нет', subtitle: 'Разместите первое — оно появится здесь' },
+      moderation: { title: 'Ничего на проверке', subtitle: 'Объявления на модерации появятся здесь' },
     })[tab.value],
 )
 
@@ -146,13 +146,7 @@ onMounted(() => store.load())
       </div>
 
       <!-- Empty -->
-      <div v-else class="flex flex-col items-center gap-3 px-8 py-24 text-center">
-        <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
-          <component :is="empty.icon" :size="26" :stroke-width="1.6" class="text-text-muted" />
-        </div>
-        <p class="text-[15px] text-text">{{ empty.text }}</p>
-        <p class="text-[13px] text-text-muted">{{ empty.hint }}</p>
-      </div>
+      <EmptyState v-else :key="tab" :title="empty.title" :subtitle="empty.subtitle" />
     </section>
 
     <!-- Place-ad button (raised above tab bar for breathing room) -->

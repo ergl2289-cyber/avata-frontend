@@ -5,7 +5,7 @@ import { ChevronLeft, MessageCircle, Car, Share2, Eye, Heart, Star } from 'lucid
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
-import { getCarById, getSimilarCars, backend } from '@/api/cars.service'
+import { getCarById, getSimilarCars, recordCarView, backend } from '@/api/cars.service'
 import { getCachedCar, setCachedCar } from '@/api/cars.cache'
 import { galleryUrls } from '@/api/assets'
 import {
@@ -14,8 +14,10 @@ import {
   formatMileage,
   formatPrice,
   fuelLabel,
+  groupThousands,
   transmissionLabel,
 } from '@/utils/format'
+import { useFavoritesStore } from '@/stores/favorites'
 import { useTelegram } from '@/composables/useTelegram'
 import type { CarDetail, CarListItem } from '@/types/car'
 
@@ -25,12 +27,30 @@ const similarCache = new Map<number, CarListItem[]>()
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
+const favorites = useFavoritesStore()
 const { haptic, openSellerChat } = useTelegram()
 
 const car = ref<CarDetail | null>(null)
 const loading = ref(true)
 const error = ref(false)
 const similar = ref<CarListItem[]>([])
+
+/* Live counters (reactivity). `likeBase`/`likedAtLoad` are the server truth at
+ * (re)load; the displayed like count adds the user's pending optimistic toggle
+ * so the number jumps instantly with the heart, then reconciles on revalidate. */
+const likeBase = ref(0)
+const likedAtLoad = ref(false)
+const liked = computed(() => favorites.isLiked(Number(props.id)))
+const displayLikes = computed(() =>
+  Math.max(0, likeBase.value + (liked.value ? 1 : 0) - (likedAtLoad.value ? 1 : 0)),
+)
+const displayViews = computed(() => car.value?.views_global ?? 0)
+
+/** Snapshot the server-side like truth for the optimistic display. */
+function syncCounters(c: CarDetail) {
+  likeBase.value = c.likes_global
+  likedAtLoad.value = favorites.isLiked(c.id)
+}
 
 const descExpanded = ref(false)
 const descEl = ref<HTMLElement | null>(null)
@@ -165,22 +185,39 @@ function loadSimilar(id: number, brandId: number) {
     })
 }
 
+/** Record a view + pull fresh counters in the background (stale-while-revalidate). */
+async function revalidate(id: number) {
+  recordCarView(id) // fire-and-forget; bumps the server-side views counter
+  try {
+    const res = await getCarById(id)
+    setCachedCar(res.data)
+    if (Number(props.id) !== id || !car.value) return // navigated away
+    // Refresh only the live counters — avoid disrupting gallery/description.
+    car.value.views_global = res.data.views_global
+    car.value.likes_global = res.data.likes_global
+    syncCounters(res.data)
+  } catch {
+    /* keep the cached numbers on a failed refresh */
+  }
+}
+
 async function load() {
   const id = Number(props.id)
   error.value = false
   descExpanded.value = false
   similar.value = []
 
-  // Cache hit → render instantly, no skeleton, no refetch.
+  // Cache hit → render instantly, then revalidate counters in the background.
   const cached = getCachedCar(id)
   if (cached) {
     car.value = cached
+    syncCounters(cached)
     loading.value = false
     await nextTick()
     measureDesc()
     loadSimilar(id, cached.model.brand.id)
     loadSellerRating(cached.seller?.id ? Number(cached.seller.id) : null)
-    backend.recordView(id).catch(() => {})
+    void revalidate(id) // records the view (session-deduped) + refreshes counters
     return
   }
 
@@ -189,12 +226,13 @@ async function load() {
     const res = await getCarById(id)
     setCachedCar(res.data)
     car.value = res.data
+    syncCounters(res.data)
     loading.value = false
     await nextTick()
     measureDesc()
     loadSimilar(id, res.data.model.brand.id)
     loadSellerRating(res.data.seller?.id ? Number(res.data.seller.id) : null)
-    backend.recordView(id).catch(() => {})
+    void recordCarView(id) // already-fresh data; just count the view
   } catch {
     error.value = true
     loading.value = false
@@ -274,10 +312,17 @@ onMounted(load)
           <h1 class="mt-2 text-[19px] font-semibold leading-snug text-text">{{ title }}</h1>
           <p class="mt-1 text-[14px] text-text-muted">{{ subtitle }}</p>
           <p class="mt-0.5 text-[13px] text-text-muted">{{ car.city.name }}</p>
-          <p class="mt-1.5 flex items-center gap-3 text-[13px] text-text-faint">
-            <span class="flex items-center gap-1"><Eye :size="14" /> {{ car.views_global }}</span>
-            <span class="flex items-center gap-1"><Heart :size="14" /> {{ car.likes_global }}</span>
-          </p>
+
+          <!-- Live counters: views grow on each visit, likes jump optimistically. -->
+          <div class="mt-3 flex items-center gap-4 text-[13px] text-text-faint">
+            <span class="flex items-center gap-1.5">
+              <Eye :size="15" :stroke-width="1.8" /> {{ groupThousands(displayViews) }}
+            </span>
+            <span class="flex items-center gap-1.5" :class="liked ? 'text-like' : ''">
+              <Heart :size="15" :stroke-width="1.8" :class="liked ? 'fill-like' : ''" />
+              {{ groupThousands(displayLikes) }}
+            </span>
+          </div>
         </section>
 
         <!-- Specs -->

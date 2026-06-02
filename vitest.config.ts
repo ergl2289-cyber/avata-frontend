@@ -13,5 +13,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.{test,spec}.ts'],
+    // Logic tests always run against the in-memory mocks, regardless of the
+    // local .env (which may point at the real backend for Telegram testing).
+    env: {
+      VITE_USE_MOCKS: 'true',
+      VITE_DIRECTUS_URL: '',
+    },
   },
 })

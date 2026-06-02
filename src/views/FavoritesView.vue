@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onActivated, ref } from 'vue'
-import { Heart } from 'lucide-vue-next'
 import FavoriteCard from '@/components/car/FavoriteCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useFavoritesStore } from '@/stores/favorites'
 
 defineOptions({ name: 'FavoritesView' })
@@ -55,16 +55,11 @@ onActivated(() => favorites.syncFromServer())
       </div>
 
       <!-- Empty -->
-      <div
+      <EmptyState
         v-else-if="!favorites.items.length"
-        class="flex flex-col items-center gap-3 px-8 py-28 text-center"
-      >
-        <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
-          <Heart :size="26" :stroke-width="1.6" class="text-text-muted" />
-        </div>
-        <p class="text-[15px] text-text">В избранном пока пусто</p>
-        <p class="text-[13px] text-text-muted">Лайкайте объявления — они появятся здесь</p>
-      </div>
+        title="В избранном пока пусто"
+        subtitle="Сохранённые объявления появятся здесь"
+      />
 
       <!-- List -->
       <TransitionGroup v-else name="fav" tag="div" class="space-y-4">

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, SlidersHorizontal, X, SearchX, MapPin } from 'lucide-vue-next'
+import { Search, SlidersHorizontal, X, MapPin } from 'lucide-vue-next'
 import CarCard from '@/components/car/CarCard.vue'
 import CarCardSkeleton from '@/components/car/CarCardSkeleton.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import CityPickerSheet from '@/components/geo/CityPickerSheet.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useCarsStore } from '@/stores/cars'
 import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
@@ -123,16 +124,11 @@ onMounted(() => {
       </div>
 
       <!-- Empty -->
-      <div
+      <EmptyState
         v-else-if="!cars.items.length"
-        class="flex flex-col items-center gap-3 px-8 py-24 text-center"
-      >
-        <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
-          <SearchX :size="26" :stroke-width="1.6" class="text-text-muted" />
-        </div>
-        <p class="text-[15px] text-text">Ничего не найдено</p>
-        <p class="text-[13px] text-text-muted">Попробуйте изменить параметры поиска</p>
-      </div>
+        title="Ничего не найдено"
+        subtitle="Попробуйте изменить параметры поиска"
+      />
 
       <!-- Grid -->
       <template v-else>

@@ -247,6 +247,19 @@ async function getCarByIdBackend(id: number) {
   } as DirectusItemResponse<CarDetail>
 }
 
+/**
+ * Record a view for a listing (drives the реальные просмотры counter).
+ * No-op in mock mode. Deduped per session so re-opening the same listing
+ * doesn't spam the endpoint — the authoritative "one view per user" rule
+ * lives on the backend (unique (user_id, car_id)).
+ */
+const viewedThisSession = new Set<number>()
+export function recordCarView(id: number): Promise<void> {
+  if (USE_MOCKS || viewedThisSession.has(id)) return Promise.resolve()
+  viewedThisSession.add(id)
+  return backend.recordView(id).then(() => undefined).catch(() => undefined)
+}
+
 /* ------------------------------------------------------------------
  * Current user's own published listings.
  * ------------------------------------------------------------------ */

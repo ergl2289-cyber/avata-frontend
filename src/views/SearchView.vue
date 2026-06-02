@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown, SearchX } from 'lucide-vue-next'
+import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-vue-next'
 import SearchResultCard from '@/components/car/SearchResultCard.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import SortSheet from '@/components/car/SortSheet.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useSearchStore } from '@/stores/search'
 import { useFiltersStore } from '@/stores/filters'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -135,16 +136,11 @@ onMounted(() => {
       </div>
 
       <!-- Empty -->
-      <div
+      <EmptyState
         v-else-if="!search.items.length"
-        class="flex flex-col items-center gap-3 px-8 py-24 text-center"
-      >
-        <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
-          <SearchX :size="26" :stroke-width="1.6" class="text-text-muted" />
-        </div>
-        <p class="text-[15px] text-text">Ничего не найдено</p>
-        <p class="text-[13px] text-text-muted">Попробуйте изменить запрос или фильтры</p>
-      </div>
+        title="Ничего не найдено"
+        subtitle="Измените запрос или сбросьте фильтры"
+      />
 
       <!-- List -->
       <template v-else>
