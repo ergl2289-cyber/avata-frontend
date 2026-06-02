@@ -21,6 +21,7 @@ const { haptic } = useTelegram()
 const searchText = ref(props.q)
 const filterOpen = ref(false)
 const sortOpen = ref(false)
+const inputEl = ref<HTMLInputElement | null>(null)
 
 const SORT_LABELS: Record<string, string> = {
   date_desc: 'Сначала новые',
@@ -43,6 +44,9 @@ function submit() {
   const q = searchText.value.trim()
   router.replace({ name: 'search', query: q ? { q } : {} })
   search.setQuery(q)
+  // Drop focus so the on-screen keyboard closes and the bottom tab bar returns
+  // (the search screen lives under the Home tab) — otherwise it's a dead-end.
+  inputEl.value?.blur()
 }
 
 function clearText() {
@@ -54,6 +58,9 @@ onMounted(() => {
   search.query = props.q
   searchText.value = props.q
   search.reload()
+  // Arriving from the Home search field: drop any lingering focus so the
+  // keyboard closes and the bottom tab bar is visible on the results.
+  ;(document.activeElement as HTMLElement | null)?.blur?.()
 })
 </script>
 
@@ -74,6 +81,7 @@ onMounted(() => {
         <div class="relative flex-1">
           <Search :size="20" class="pointer-events-none absolute left-3.5 top-2.5 text-text-muted" />
           <input
+            ref="inputEl"
             v-model="searchText"
             type="search"
             enterkeyhint="search"
