@@ -33,12 +33,16 @@ tgStore.init()
   const hash = window.location.hash
   if (hash.startsWith('#tgAuthResult=')) {
     try {
-      const encoded = hash.replace('#tgAuthResult=', '').split('&')[0]
-      const user = JSON.parse(atob(encoded))
+      // base64url → base64, then decode as UTF-8 (Cyrillic names break a plain
+      // JSON.parse(atob(...)), which left the user stuck on the login screen).
+      const raw = hash.slice('#tgAuthResult='.length).split('&')[0]
+      const b64 = decodeURIComponent(raw).replace(/-/g, '+').replace(/_/g, '/')
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+      const user = JSON.parse(new TextDecoder().decode(bytes))
       await tgStore.widgetAuth(user)
-      authed = true
+      authed = tgStore.isAuthenticated
     } catch {
-      /* widget auth failed */
+      /* widget auth failed — fall through to the login screen */
     }
     history.replaceState(null, '', window.location.pathname + window.location.search)
   }
