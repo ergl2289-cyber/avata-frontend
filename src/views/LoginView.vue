@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Car, ExternalLink, Send } from 'lucide-vue-next'
+import { Car, ExternalLink } from 'lucide-vue-next'
 
 const BOT_ID = '8669280661'
 const redirecting = ref(false)
@@ -33,17 +33,19 @@ function openOAuth() {
 
     <template v-if="redirecting">
       <div class="flex flex-col items-center gap-3">
-        <span class="h-6 w-6 animate-spin rounded-full border-2 border-text border-t-transparent" />
+        <span class="h-6 w-6 animate-spin rounded-full border-2 border-[#2AABEE] border-t-transparent" />
         <p class="text-[14px] text-text-muted">Переход в Telegram…</p>
       </div>
     </template>
 
     <template v-else>
       <button
-        class="flex w-full max-w-xs items-center justify-center gap-2.5 rounded-pill bg-text px-6 py-3.5 text-[16px] font-semibold text-bg transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+        class="flex w-full max-w-xs items-center justify-center gap-2.5 rounded-pill bg-[#2AABEE] px-6 py-3.5 text-[16px] font-semibold text-white shadow-lg shadow-black/20 transition-transform duration-fast ease-out-ios active:scale-[0.98]"
         @click="openOAuth"
       >
-        <Send :size="19" :stroke-width="2" />
+        <svg class="h-[22px] w-[22px]" viewBox="0 0 240 240" fill="currentColor" aria-hidden="true">
+          <path d="M120 0C53.7 0 0 53.7 0 120s53.7 120 120 120 120-53.7 120-120S186.3 0 120 0Zm55.6 82.2-18.6 87.7c-1.4 6.2-5.1 7.7-10.3 4.8l-28.5-21-13.7 13.2c-1.5 1.5-2.8 2.8-5.7 2.8l2-29 52.8-47.7c2.3-2-.5-3.2-3.6-1.2l-65.2 41.1-28.1-8.8c-6.1-1.9-6.2-6.1 1.3-9l109.9-42.4c5.1-1.9 9.5 1.2 7.8 8.9Z"/>
+        </svg>
         Войти через Telegram
       </button>
 
