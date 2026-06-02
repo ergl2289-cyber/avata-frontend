@@ -79,7 +79,10 @@ export const useMyListingsStore = defineStore('myListings', () => {
       updatedAt: new Date().toISOString(),
       title: draftTitle(form),
       cover: form.photos[0] ?? '',
-      form: structuredClone(form),
+      // JSON clone, not structuredClone: the form is a Vue reactive proxy and
+      // structuredClone throws DataCloneError on it (this aborted "Сохранить и
+      // выйти" and auto-save). The form is plain JSON data, so this is safe.
+      form: JSON.parse(JSON.stringify(form)) as ListingForm,
     }
     const idx = drafts.value.findIndex((d) => d.id === draftId)
     if (idx >= 0) drafts.value.splice(idx, 1, entry)
