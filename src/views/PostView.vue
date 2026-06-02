@@ -27,7 +27,11 @@ let editBase: CarDetail | null = null
 
 // init form (new, from an existing draft, or — async — from a listing being edited)
 const existing = props.draftId ? store.getDraft(props.draftId) : undefined
-const form = reactive<ListingForm>(existing ? structuredClone(existing.form) : emptyListingForm())
+// JSON clone, not structuredClone: existing.form is a Vue reactive proxy (from
+// the store) and structuredClone throws DataCloneError on it → black screen.
+const form = reactive<ListingForm>(
+  existing ? (JSON.parse(JSON.stringify(existing.form)) as ListingForm) : emptyListingForm(),
+)
 const currentDraftId = ref<string | null>(props.draftId ?? null)
 
 if (props.carId != null) {
