@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Car, ExternalLink } from 'lucide-vue-next'
+import { ExternalLink } from 'lucide-vue-next'
+import logoUrl from '@/assets/logo-avata.webp'
 
 const BOT_ID = '8669280661'
 const redirecting = ref(false)
@@ -24,9 +25,12 @@ function openOAuth() {
 <template>
   <main class="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 pb-24 safe-bottom">
     <div class="flex flex-col items-center gap-3">
-      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface">
-        <Car :size="32" :stroke-width="1.6" class="text-text" />
-      </div>
+      <img
+        :src="logoUrl"
+        alt="Avata"
+        class="w-28 select-none"
+        draggable="false"
+      />
       <h1 class="text-[22px] font-bold text-text">AVATA</h1>
       <p class="text-[15px] text-text-muted">Войдите, чтобы продолжить</p>
     </div>
