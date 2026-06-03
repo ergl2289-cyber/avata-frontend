@@ -17,6 +17,8 @@ export interface DirectusListResponse<T> {
     filter_count?: number
     /** total number of items in the collection */
     total_count?: number
+    /** cursor for the next page (real backend). null = no more pages. */
+    next_cursor?: number | null
   }
 }
 

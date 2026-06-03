@@ -14,27 +14,43 @@ export const useCarsStore = defineStore('cars', () => {
   const loadingMore = ref(false) // subsequent pages
   const hasMore = ref(true)
   const error = ref<string | null>(null)
-  const offset = ref(0)
+  const offset = ref(0) // mock pagination
+  const cursor = ref<number | null>(null) // real backend pagination
 
   const filtersStore = useFiltersStore()
   const profileStore = useProfileStore()
+
+  /**
+   * Advance pagination state from a response. Real backend → cursor (meta carries
+   * `next_cursor`); mock → offset + "full page" heuristic.
+   */
+  function advance(res: Awaited<ReturnType<typeof getCars>>) {
+    offset.value = items.value.length
+    if (res.meta && 'next_cursor' in res.meta) {
+      cursor.value = res.meta.next_cursor ?? null
+      hasMore.value = res.meta.next_cursor != null
+    } else {
+      hasMore.value = res.data.length === PAGE_SIZE
+    }
+  }
 
   /** Reset and load the first page (called on mount and when filters change). */
   async function reload() {
     loading.value = true
     error.value = null
     offset.value = 0
+    cursor.value = null
     hasMore.value = true
     try {
       const res = await getCars({
         limit: PAGE_SIZE,
         offset: 0,
+        cursor: null,
         ...filtersStore.filters,
         regionId: profileStore.regionId,
       } as any)
       items.value = res.data
-      offset.value = res.data.length
-      hasMore.value = res.data.length === PAGE_SIZE
+      advance(res)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить ленту'
     } finally {
@@ -50,12 +66,12 @@ export const useCarsStore = defineStore('cars', () => {
       const res = await getCars({
         limit: PAGE_SIZE,
         offset: offset.value,
+        cursor: cursor.value,
         ...filtersStore.filters,
         regionId: profileStore.regionId,
       } as any)
       items.value = items.value.concat(res.data)
-      offset.value += res.data.length
-      hasMore.value = res.data.length === PAGE_SIZE
+      advance(res)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
     } finally {

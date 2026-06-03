@@ -148,7 +148,7 @@ export function getCars(params: CarListParams) {
 }
 
 async function getCarsBackend(params: CarListParams) {
-  const { limit, sort, ...filters } = params
+  const { limit, sort, cursor, ...filters } = params
   const result = await backend.getCarsFeed({
     brand_id: filters.brandId,
     model_id: filters.modelId,
@@ -160,11 +160,12 @@ async function getCarsBackend(params: CarListParams) {
     region_id: (filters as any).regionId,
     sort_by: sort,
     limit,
+    cursor: cursor ?? undefined,
   })
   const items = result.items.map(feedItemToList)
   return {
     data: items,
-    meta: { filter_count: items.length },
+    meta: { filter_count: items.length, next_cursor: result.next_cursor },
   } as DirectusListResponse<CarListItem>
 }
 

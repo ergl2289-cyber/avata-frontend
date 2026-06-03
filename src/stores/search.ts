@@ -21,7 +21,8 @@ export const useSearchStore = defineStore('search', () => {
   const loadingMore = ref(false)
   const hasMore = ref(true)
   const error = ref<string | null>(null)
-  const offset = ref(0)
+  const offset = ref(0) // mock pagination
+  const cursor = ref<number | null>(null) // real backend pagination
 
   const filtersStore = useFiltersStore()
   const profileStore = useProfileStore()
@@ -30,10 +31,22 @@ export const useSearchStore = defineStore('search', () => {
     return {
       limit: PAGE_SIZE,
       offset: off,
+      cursor: cursor.value,
       sort: sort.value,
       ...filtersStore.filters,
       regionId: profileStore.regionId,
       search: query.value.trim() || null,
+    }
+  }
+
+  /** Advance pagination: cursor (real backend) or offset (mock). */
+  function advance(res: Awaited<ReturnType<typeof getCars>>) {
+    offset.value = items.value.length
+    if (res.meta && 'next_cursor' in res.meta) {
+      cursor.value = res.meta.next_cursor ?? null
+      hasMore.value = res.meta.next_cursor != null
+    } else {
+      hasMore.value = res.data.length === PAGE_SIZE
     }
   }
 
@@ -42,12 +55,12 @@ export const useSearchStore = defineStore('search', () => {
     loading.value = true
     error.value = null
     offset.value = 0
+    cursor.value = null
     hasMore.value = true
     try {
       const res = await getCars(params(0))
       items.value = res.data
-      offset.value = res.data.length
-      hasMore.value = res.data.length === PAGE_SIZE
+      advance(res)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось выполнить поиск'
     } finally {
@@ -61,8 +74,7 @@ export const useSearchStore = defineStore('search', () => {
     try {
       const res = await getCars(params(offset.value))
       items.value = items.value.concat(res.data)
-      offset.value += res.data.length
-      hasMore.value = res.data.length === PAGE_SIZE
+      advance(res)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
     } finally {

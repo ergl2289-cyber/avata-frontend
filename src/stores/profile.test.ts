@@ -19,7 +19,11 @@ describe('profile store', () => {
     p.setCity({ id: 11, name: 'Сочи', region: null })
     expect(p.cityId).toBe(11)
     expect(p.cityName).toBe('Сочи')
-    expect(JSON.parse(localStorage.getItem('avata:city') ?? '{}')).toEqual({ id: 11, name: 'Сочи' })
+    expect(JSON.parse(localStorage.getItem('avata:city') ?? '{}')).toEqual({
+      id: 11,
+      name: 'Сочи',
+      regionId: null,
+    })
   })
 
   it('restores the persisted city on init', () => {

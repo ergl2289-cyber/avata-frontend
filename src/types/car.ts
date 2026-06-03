@@ -134,6 +134,9 @@ export type SortKey = 'date_desc' | 'price_asc' | 'price_desc' | 'year_desc' | '
 
 export interface CarListParams extends CarFilters {
   limit: number
+  /** Offset pagination — used by the mock resolver. */
   offset: number
+  /** Cursor pagination — used by the real backend (`next_cursor`). */
+  cursor?: number | null
   sort?: SortKey
 }
