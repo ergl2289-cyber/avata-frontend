@@ -63,6 +63,20 @@ export interface TechnicalSpecs {
   color: string | null
 }
 
+/**
+ * Legal / check data (car_legal_data). Surfaced on the listing card so the buyer
+ * sees VIN, plate and the «розыск / ДТП / ограничения» checks the backend stores.
+ */
+export interface LegalData {
+  vin: string | null
+  license_plate: string | null
+  chassis_number: string | null
+  is_wanted: boolean | null
+  accident_count: number | null
+  is_restricted: boolean | null
+  last_check_date: string | null
+}
+
 /* ----------------------------------------------------------------------------
  * Car — two shapes
  * ------------------------------------------------------------------------- */
@@ -91,9 +105,10 @@ export interface CarListItem {
 }
 
 /**
- * Full item for the listing screen (next stage). Mirrors a Directus `cars` row
- * with deep `fields`: full specs, description, gallery, seller.
- * `car_legal_data` is intentionally omitted (future scope).
+ * Full item for the listing screen. Mirrors a Directus `cars` row with deep
+ * `fields`: full specs, description, gallery, seller. `legal` and `is_liked`
+ * come from the real backend (`GET /api/cars/{id}`) and are optional so the
+ * mock fixtures (typed as CarDetail) don't need to provide them.
  */
 export interface CarDetail extends Omit<CarListItem, 'technical_specs' | 'city'> {
   description: string | null
@@ -103,6 +118,9 @@ export interface CarDetail extends Omit<CarListItem, 'technical_specs' | 'city'>
   city: City
   seller: SellerUser
   technical_specs: TechnicalSpecs | null
+  legal?: LegalData | null
+  /** Whether the current user has liked this listing (server truth). */
+  is_liked?: boolean
 }
 
 /**

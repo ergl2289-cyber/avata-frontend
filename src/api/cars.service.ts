@@ -106,9 +106,11 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
     date_created: d.date_created,
     model: { id: 0, name: d.model_name, brand: { id: 0, name: d.brand_name } },
     city: { id: 0, name: d.city_name, region: d.region_id ? { id: d.region_id, name: '' } : null },
+    // The backend already returns a ready-to-use absolute URL per photo; prefer it
+    // (assetUrl passes http(s) URLs through). Fall back to the file id otherwise.
     files: d.photos?.map((p: backend.PhotoInfo) => ({
       id: 0,
-      directus_files_id: { id: p.id, filename_download: '', title: '', width: 0, height: 0 },
+      directus_files_id: { id: p.url || p.id, filename_download: '', title: '', width: 0, height: 0 },
     })) ?? [],
     description: d.description,
     views_global: d.views_global,
@@ -127,6 +129,18 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
           color: d.technical.color,
         }
       : null,
+    legal: d.legal
+      ? {
+          vin: d.legal.vin,
+          license_plate: d.legal.license_plate,
+          chassis_number: d.legal.chassis_number,
+          is_wanted: d.legal.is_wanted,
+          accident_count: d.legal.accident_count,
+          is_restricted: d.legal.is_restricted,
+          last_check_date: d.legal.last_check_date,
+        }
+      : null,
+    is_liked: d.is_liked,
   }
 }
 

@@ -48,6 +48,8 @@ const displayViews = computed(() => car.value?.views_global ?? 0)
 
 /** Snapshot the server-side like truth for the optimistic display. */
 function syncCounters(c: CarDetail) {
+  // Trust the server's is_liked over the local cache (cross-device consistency).
+  if (c.is_liked != null) favorites.reconcile(c.id, c.is_liked)
   likeBase.value = c.likes_global
   likedAtLoad.value = favorites.isLiked(c.id)
 }
@@ -85,6 +87,36 @@ const specs = computed(() => {
   if (t?.drive_type) rows.push({ label: 'Привод', value: driveLabel(t.drive_type) })
   if (t?.color) rows.push({ label: 'Цвет', value: t.color })
   return rows
+})
+
+/** "Документы и проверки" — only the legal fields the backend actually filled. */
+interface LegalRow { label: string; value: string; warn?: boolean }
+const legalRows = computed<LegalRow[]>(() => {
+  const l = car.value?.legal
+  if (!l) return []
+  const rows: LegalRow[] = []
+  if (l.vin) rows.push({ label: 'VIN', value: l.vin })
+  if (l.license_plate) rows.push({ label: 'Гос. номер', value: l.license_plate })
+  if (l.accident_count != null)
+    rows.push({
+      label: 'ДТП',
+      value: l.accident_count === 0 ? 'Не найдены' : String(l.accident_count),
+      warn: l.accident_count > 0,
+    })
+  if (l.is_wanted != null)
+    rows.push({ label: 'В розыске', value: l.is_wanted ? 'Да' : 'Нет', warn: !!l.is_wanted })
+  if (l.is_restricted != null)
+    rows.push({ label: 'Ограничения', value: l.is_restricted ? 'Есть' : 'Нет', warn: !!l.is_restricted })
+  return rows
+})
+
+/** Subtle "проверено DD.MM.YYYY" caption under the legal block. */
+const lastCheckLabel = computed(() => {
+  const iso = car.value?.legal?.last_check_date
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return `Данные проверены ${d.toLocaleDateString('ru-RU')}`
 })
 
 const sellerName = computed(() => {
@@ -339,6 +371,30 @@ onMounted(load)
               <span class="text-right text-[14px] text-text">{{ row.value }}</span>
             </div>
           </div>
+        </section>
+
+        <!-- Документы и проверки (legal data) -->
+        <section v-if="legalRows.length" class="mt-7">
+          <h2 class="mb-3 text-[17px] font-semibold text-text">Документы и проверки</h2>
+          <div class="overflow-hidden rounded-card bg-surface">
+            <div
+              v-for="(row, i) in legalRows"
+              :key="row.label"
+              class="flex items-start justify-between gap-4 px-4 py-3"
+              :class="i ? 'border-t border-border' : ''"
+            >
+              <span class="text-[14px] text-text-muted">{{ row.label }}</span>
+              <span
+                class="text-right text-[14px]"
+                :class="row.warn ? 'text-like font-medium' : 'text-text'"
+              >
+                {{ row.value }}
+              </span>
+            </div>
+          </div>
+          <p v-if="lastCheckLabel" class="mt-2 px-1 text-[12px] text-text-faint">
+            {{ lastCheckLabel }}
+          </p>
         </section>
 
         <!-- Description -->

@@ -131,6 +131,25 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
+  /**
+   * Reconcile the local liked-cache with the server truth (`is_liked` from the
+   * detail endpoint). Adjusts only the ids cache — the like *count* is carried
+   * separately by the card — so a listing liked on another device shows correctly.
+   * No-op in mock mode (local cache is the source of truth there).
+   */
+  function reconcile(id: number, liked: boolean) {
+    if (USE_MOCKS) return
+    const has = ids.value.includes(id)
+    if (liked && !has) {
+      ids.value = [id, ...ids.value]
+      persist()
+    } else if (!liked && has) {
+      ids.value = ids.value.filter((x) => x !== id)
+      items.value = items.value.filter((c) => c.id !== id)
+      persist()
+    }
+  }
+
   /** Remove a listing from favorites (used by the Favorites screen). */
   async function remove(id: number) {
     if (!USE_MOCKS) {
@@ -149,5 +168,5 @@ export const useFavoritesStore = defineStore('favorites', () => {
     persist()
   }
 
-  return { ids, items, loading, count, isLiked, toggle, loadItems, syncFromServer, remove }
+  return { ids, items, loading, count, isLiked, toggle, loadItems, syncFromServer, reconcile, remove }
 })
