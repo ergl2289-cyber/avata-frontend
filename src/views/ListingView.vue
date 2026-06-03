@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, MessageCircle, Car, Share2, Eye, Heart, Star } from 'lucide-vue-next'
+import { ChevronLeft, MessageCircle, Share2, Eye, Heart, Star } from 'lucide-vue-next'
+import logoUrl from '@/assets/logo-avata.webp'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
@@ -269,9 +270,7 @@ onMounted(load)
       v-else-if="error || !car"
       class="flex min-h-dvh flex-col items-center justify-center gap-3 px-8 text-center"
     >
-      <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
-        <Car :size="26" :stroke-width="1.6" class="text-text-muted" />
-      </div>
+      <img :src="logoUrl" alt="Avata" class="w-28 select-none opacity-90" draggable="false" />
       <p class="text-[15px] text-text">Объявление не найдено</p>
       <button
         type="button"
