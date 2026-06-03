@@ -1,18 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { ExternalLink } from 'lucide-vue-next'
+import WebApp from '@twa-dev/sdk'
 import logoUrl from '@/assets/logo-avata.webp'
 
 const BOT_ID = '8669280661'
+// TODO: заглушка. Заменить на реальную ссылку запуска Mini App, когда будет
+// подтверждён @username бота и short-name приложения (формат t.me/<bot>/<app>
+// или t.me/<bot>?startapp=...). Тогда «Открыть приложение» запустит Mini App
+// с initData — это и есть рабочий вход внутри Telegram.
+const BOT_URL = 'https://t.me/avata_bot'
+
 const redirecting = ref(false)
-const wasLoggedOut = ref(false)
-const showOtherHint = ref(false)
 
-onMounted(() => {
-  wasLoggedOut.value = sessionStorage.getItem('avata:loggedOut') === '1'
-  sessionStorage.removeItem('avata:loggedOut')
-})
+// Are we running inside a Telegram environment (Mini App or in-app browser)?
+const inTelegram = (() => {
+  try {
+    return !!WebApp.platform && WebApp.platform !== 'unknown'
+  } catch {
+    return false
+  }
+})()
 
+/** Browser login via Telegram OAuth widget (works in Chrome/Safari, not in the
+ *  Telegram in-app browser — there use «Открыть приложение» instead). */
 function openOAuth() {
   redirecting.value = true
   const origin = window.location.origin
@@ -20,17 +31,22 @@ function openOAuth() {
   const url = `https://oauth.telegram.org/auth?bot_id=${BOT_ID}&origin=${origin}&return_to=${encodeURIComponent(returnTo)}`
   window.location.href = url
 }
+
+/** Open the bot / Mini App in Telegram — the reliable path when the page was
+ *  opened from inside Telegram (its in-app browser can't complete OAuth). */
+function openApp() {
+  if (inTelegram) {
+    WebApp.openTelegramLink(BOT_URL)
+  } else {
+    window.open(BOT_URL, '_blank')
+  }
+}
 </script>
 
 <template>
-  <main class="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 pb-24 safe-bottom">
+  <main class="flex min-h-dvh flex-col items-center justify-center gap-7 px-6 pb-24 safe-bottom">
     <div class="flex flex-col items-center gap-4">
-      <img
-        :src="logoUrl"
-        alt="Avata"
-        class="w-44 select-none"
-        draggable="false"
-      />
+      <img :src="logoUrl" alt="Avata" class="w-44 select-none" draggable="false" />
       <p class="text-[15px] text-text-muted">Войдите, чтобы продолжить</p>
     </div>
 
@@ -42,56 +58,30 @@ function openOAuth() {
     </template>
 
     <template v-else>
-      <button
-        class="flex w-full max-w-xs items-center justify-center gap-2.5 rounded-pill bg-[#2AABEE] px-6 py-3.5 text-[16px] font-semibold text-white shadow-lg shadow-black/20 transition-transform duration-fast ease-out-ios active:scale-[0.98]"
-        @click="openOAuth"
-      >
-        <svg class="h-[22px] w-[22px]" viewBox="0 0 240 240" fill="currentColor" aria-hidden="true">
-          <path d="M120 0C53.7 0 0 53.7 0 120s53.7 120 120 120 120-53.7 120-120S186.3 0 120 0Zm55.6 82.2-18.6 87.7c-1.4 6.2-5.1 7.7-10.3 4.8l-28.5-21-13.7 13.2c-1.5 1.5-2.8 2.8-5.7 2.8l2-29 52.8-47.7c2.3-2-.5-3.2-3.6-1.2l-65.2 41.1-28.1-8.8c-6.1-1.9-6.2-6.1 1.3-9l109.9-42.4c5.1-1.9 9.5 1.2 7.8 8.9Z"/>
-        </svg>
-        Войти через Telegram
-      </button>
+      <div class="flex w-full max-w-xs flex-col gap-3">
+        <button
+          class="flex w-full items-center justify-center gap-2.5 rounded-pill bg-[#2AABEE] px-6 py-3.5 text-[16px] font-semibold text-white shadow-lg shadow-black/20 transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+          @click="openOAuth"
+        >
+          <svg class="h-[22px] w-[22px]" viewBox="0 0 240 240" fill="currentColor" aria-hidden="true">
+            <path d="M120 0C53.7 0 0 53.7 0 120s53.7 120 120 120 120-53.7 120-120S186.3 0 120 0Zm55.6 82.2-18.6 87.7c-1.4 6.2-5.1 7.7-10.3 4.8l-28.5-21-13.7 13.2c-1.5 1.5-2.8 2.8-5.7 2.8l2-29 52.8-47.7c2.3-2-.5-3.2-3.6-1.2l-65.2 41.1-28.1-8.8c-6.1-1.9-6.2-6.1 1.3-9l109.9-42.4c5.1-1.9 9.5 1.2 7.8 8.9Z"/>
+          </svg>
+          Войти через Telegram
+        </button>
+
+        <button
+          class="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-6 py-3.5 text-[15px] font-medium text-text transition-colors duration-fast active:bg-surface"
+          @click="openApp"
+        >
+          <ExternalLink :size="18" :stroke-width="1.9" />
+          Открыть приложение
+        </button>
+      </div>
 
       <p class="max-w-xs text-center text-[13px] leading-relaxed text-text-faint">
-        Откроется страница Telegram. На телефоне — подтверждение в приложении, на компьютере — отсканируйте QR-код.
+        В браузере — войдите через Telegram (на телефоне подтвердите вход, на компьютере отсканируйте QR-код).
+        Если вы открыли ссылку внутри Telegram — нажмите «Открыть приложение».
       </p>
-
-      <!-- Logged out hint -->
-      <div
-        v-if="wasLoggedOut"
-        class="max-w-xs rounded-card border border-border bg-surface px-4 py-3 text-center"
-      >
-        <p class="text-[13px] leading-relaxed text-text-muted">
-          Чтобы войти под другим аккаунтом, откройте сайт в
-          <span class="font-medium text-text">приватном режиме</span>
-          (Ctrl+Shift+N) или используйте другой браузер.
-        </p>
-      </div>
-
-      <div class="flex w-full max-w-xs items-center gap-3">
-        <div class="h-px flex-1 bg-border" />
-        <span class="text-[12px] text-text-faint">или</span>
-        <div class="h-px flex-1 bg-border" />
-      </div>
-
-      <button
-        class="flex w-full max-w-xs items-center justify-center gap-2 rounded-xl border border-border px-6 py-3 text-[15px] text-text-muted transition-colors active:bg-surface"
-        @click="showOtherHint = !showOtherHint"
-      >
-        <ExternalLink :size="16" :stroke-width="1.8" />
-        Другой аккаунт
-      </button>
-
-      <div
-        v-if="showOtherHint"
-        class="max-w-xs rounded-card bg-surface px-4 py-3 text-center"
-      >
-        <p class="text-[13px] leading-relaxed text-text-muted">
-          Telegram запоминает авторизацию для этого домена. Чтобы войти под другим аккаунтом,
-          откройте этот сайт в <span class="font-medium text-text">приватном режиме</span>
-          (Ctrl+Shift+N) или в другом браузере.
-        </p>
-      </div>
     </template>
   </main>
 </template>
