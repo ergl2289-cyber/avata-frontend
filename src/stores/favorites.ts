@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { getCarsByIds } from '@/api/cars.service'
 import { backend, feedItemToList } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
+import { useCarsStore } from './cars'
+import { useSearchStore } from './search'
 
 const STORAGE_KEY = 'avata:favorites'
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
@@ -40,6 +42,19 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return ids.value.includes(id)
   }
 
+  /** Reflect a like change on the feed/search cards (exact count, or ±1). */
+  function syncFeedLike(id: number, opts: { count?: number; delta?: number }) {
+    const cars = useCarsStore()
+    const search = useSearchStore()
+    if (opts.count != null) {
+      cars.setLikeCount(id, opts.count)
+      search.setLikeCount(id, opts.count)
+    } else if (opts.delta) {
+      cars.updateLikeCount(id, opts.delta)
+      search.updateLikeCount(id, opts.delta)
+    }
+  }
+
   /** Add/remove a like locally (mock/offline mode — no backend). */
   function toggleLocal(id: number): boolean {
     if (ids.value.includes(id)) {
@@ -55,7 +70,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   /** Toggle like — server-backed when real; local-only in mock mode. */
   async function toggle(id: number): Promise<boolean> {
-    if (USE_MOCKS) return toggleLocal(id)
+    if (USE_MOCKS) {
+      const liked = toggleLocal(id)
+      syncFeedLike(id, { delta: liked ? 1 : -1 })
+      return liked
+    }
     const prev = isLiked(id)
     try {
       const result = await backend.toggleLike(id)
@@ -68,18 +87,20 @@ export const useFavoritesStore = defineStore('favorites', () => {
         items.value = items.value.filter((c) => c.id !== id)
       }
       persist()
+      syncFeedLike(id, { count: result.likes_count })
       return result.is_liked
     } catch {
       // On network error, toggle locally as fallback
+      const nowLiked = !prev
       if (prev) {
         ids.value = ids.value.filter((x) => x !== id)
         items.value = items.value.filter((c) => c.id !== id)
-        persist()
-        return false
+      } else {
+        ids.value = [id, ...ids.value]
       }
-      ids.value = [id, ...ids.value]
       persist()
-      return true
+      syncFeedLike(id, { delta: nowLiked ? 1 : -1 })
+      return nowLiked
     }
   }
 
@@ -114,10 +135,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function remove(id: number) {
     if (!USE_MOCKS) {
       try {
-        await backend.toggleLike(id)
+        const result = await backend.toggleLike(id)
+        syncFeedLike(id, { count: result.likes_count })
       } catch {
         /* ignore network error — keep local state consistent */
+        syncFeedLike(id, { delta: -1 })
       }
+    } else {
+      syncFeedLike(id, { delta: -1 })
     }
     ids.value = ids.value.filter((x) => x !== id)
     items.value = items.value.filter((c) => c.id !== id)

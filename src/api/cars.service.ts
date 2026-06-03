@@ -249,6 +249,21 @@ async function getCarByIdBackend(id: number) {
 }
 
 /**
+ * Pick a random car id ("Мне повезёт"). Real: GET /api/recommendations/random
+ * (offset-based). Mock: random item from the first page of the feed.
+ */
+export async function getRandomCarId(): Promise<number | null> {
+  if (USE_MOCKS) {
+    const res = await getCars({ limit: 50, offset: 0 })
+    const list = res.data
+    return list.length ? list[Math.floor(Math.random() * list.length)].id : null
+  }
+  const res = await backend.getRandomCars(20, Math.floor(Math.random() * 100))
+  const items = res.items
+  return items.length ? items[Math.floor(Math.random() * items.length)].id : null
+}
+
+/**
  * Record a view for a listing (drives the реальные просмотры counter).
  * No-op in mock mode. Deduped per session so re-opening the same listing
  * doesn't spam the endpoint — the authoritative "one view per user" rule

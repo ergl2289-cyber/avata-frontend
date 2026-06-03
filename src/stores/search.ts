@@ -99,6 +99,12 @@ export const useSearchStore = defineStore('search', () => {
     if (item) item.likes_global = Math.max(0, item.likes_global + delta)
   }
 
+  /** Set an exact like count on a result card (from the backend's likes_count). */
+  function setLikeCount(carId: number, count: number) {
+    const item = items.value.find((i) => i.id === carId)
+    if (item) item.likes_global = Math.max(0, count)
+  }
+
   return {
     query,
     sort,
@@ -112,5 +118,6 @@ export const useSearchStore = defineStore('search', () => {
     setQuery,
     setSort,
     updateLikeCount,
+    setLikeCount,
   }
 })

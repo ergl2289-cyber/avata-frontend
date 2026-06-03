@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, SlidersHorizontal, X, MapPin } from 'lucide-vue-next'
+import { Search, SlidersHorizontal, X, MapPin, Dices } from 'lucide-vue-next'
+import { getRandomCarId } from '@/api/cars.service'
+import { useTelegram } from '@/composables/useTelegram'
 import CarCard from '@/components/car/CarCard.vue'
 import CarCardSkeleton from '@/components/car/CarCardSkeleton.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
@@ -22,9 +24,25 @@ const filters = useFiltersStore()
 const profile = useProfileStore()
 const tg = useTelegramStore()
 
+const { haptic } = useTelegram()
+
 const filterOpen = ref(false)
 const searchText = ref('')
 const cityPickerOpen = ref(false)
+const lucky = ref(false)
+
+/** "Мне повезёт": open a random listing. */
+async function feelingLucky() {
+  if (lucky.value) return
+  lucky.value = true
+  haptic('light')
+  try {
+    const id = await getRandomCarId()
+    if (id != null) router.push({ name: 'car', params: { id } })
+  } finally {
+    lucky.value = false
+  }
+}
 
 // Browser mode — need to pick a city first
 const isBrowser = computed(() => !tg.initData)
@@ -88,6 +106,16 @@ onMounted(() => {
             <X :size="18" />
           </button>
         </div>
+
+        <button
+          type="button"
+          aria-label="Мне повезёт"
+          :disabled="lucky"
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-surface-2 transition-transform duration-fast ease-out-ios active:scale-90 disabled:opacity-50"
+          @click="feelingLucky"
+        >
+          <Dices :size="20" :class="lucky ? 'animate-spin text-text-muted' : 'text-text'" />
+        </button>
 
         <button
           type="button"

@@ -130,7 +130,13 @@ export interface CarFilters {
 }
 
 /** Sort options for the search-results screen. */
-export type SortKey = 'date_desc' | 'price_asc' | 'price_desc' | 'year_desc' | 'mileage_asc'
+export type SortKey =
+  | 'date_desc'
+  | 'popularity'
+  | 'price_asc'
+  | 'price_desc'
+  | 'year_desc'
+  | 'mileage_asc'
 
 export interface CarListParams extends CarFilters {
   limit: number

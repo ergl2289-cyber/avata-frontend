@@ -11,6 +11,7 @@ const { haptic } = useTelegram()
 
 const options: { key: SortKey; label: string }[] = [
   { key: 'date_desc', label: 'Сначала новые' },
+  { key: 'popularity', label: 'По популярности' },
   { key: 'price_asc', label: 'Сначала дешевле' },
   { key: 'price_desc', label: 'Сначала дороже' },
   { key: 'year_desc', label: 'Год: новее' },

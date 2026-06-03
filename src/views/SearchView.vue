@@ -25,6 +25,7 @@ const inputEl = ref<HTMLInputElement | null>(null)
 
 const SORT_LABELS: Record<string, string> = {
   date_desc: 'Сначала новые',
+  popularity: 'По популярности',
   price_asc: 'Сначала дешевле',
   price_desc: 'Сначала дороже',
   year_desc: 'Год: новее',

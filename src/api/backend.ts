@@ -162,6 +162,13 @@ export function getLikedCars(cursor?: number | null, limit?: number): Promise<Ca
   })
 }
 
+/** Random recommendations ("Мне повезёт") — offset-based. */
+export function getRandomCars(limit = 10, offset = 0): Promise<CarFeedResponse> {
+  return request<CarFeedResponse>('/api/recommendations/random', {
+    params: { limit, offset },
+  })
+}
+
 /* ------------------------------------------------------------------
  * Cars — detail
  * ------------------------------------------------------------------ */
