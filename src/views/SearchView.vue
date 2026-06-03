@@ -87,11 +87,8 @@ function goBack() {
 }
 
 function submit() {
-  // Enter → take the top suggestion if there is one.
-  if (suggestions.value.length) {
-    pick(suggestions.value[0])
-    return
-  }
+  // Enter doesn't auto-pick (that surprised users by rewriting their text).
+  // Just close the keyboard — the suggestion list stays so the user taps a model.
   inputEl.value?.blur()
 }
 
@@ -138,6 +135,11 @@ onMounted(() => {
             v-model="searchText"
             type="search"
             enterkeyhint="search"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            name="avata-search"
             placeholder="Поиск"
             class="w-full rounded-pill bg-surface-2 py-2.5 pl-11 pr-10 text-[15px] text-text placeholder:text-text-muted outline-none"
             @keyup.enter="submit"
