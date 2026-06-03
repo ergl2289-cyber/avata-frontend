@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import WebApp from '@twa-dev/sdk'
 import { ChevronLeft, MessageCircle, Share2, Eye, Heart, Star } from 'lucide-vue-next'
 import logoUrl from '@/assets/logo-avata.webp'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
@@ -146,10 +147,31 @@ function goBack() {
 const shared = ref(false)
 const toastText = ref('')
 
+const BOT = 'https://t.me/avata_frontend_bot'
+
+function inTelegram() {
+  try {
+    return !!WebApp.platform && WebApp.platform !== 'unknown'
+  } catch {
+    return false
+  }
+}
+
 async function doShare() {
   haptic('medium')
-  const url = window.location.href
+  // Deep link: opens the Mini App straight on this listing (no in-app-browser detour).
+  const url = `${BOT}?startapp=car_${props.id}`
   const title = car.value ? carTitle(car.value) : 'AVATA'
+
+  // Inside Telegram → native «отправить в чат» picker.
+  if (inTelegram()) {
+    WebApp.openTelegramLink(
+      `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+    )
+    return
+  }
+
+  // Browser → Web Share API, fallback to clipboard.
   try {
     await navigator.share({ title, url })
   } catch {
