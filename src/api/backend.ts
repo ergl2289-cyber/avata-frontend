@@ -170,6 +170,30 @@ export function getRandomCars(limit = 10, offset = 0): Promise<CarFeedResponse> 
 }
 
 /* ------------------------------------------------------------------
+ * Search — model autocomplete
+ * ------------------------------------------------------------------ */
+
+export interface SearchModelResult {
+  model_id: number
+  model_name: string
+  brand_id: number
+  brand_name: string
+  car_count: number
+  first_photo_url: string | null
+}
+
+/** Model autocomplete by text query (GET /api/search?q=). */
+export function searchModels(
+  q: string,
+  cityId?: number | null,
+  limit = 10,
+): Promise<SearchModelResult[]> {
+  return request<SearchModelResult[]>('/api/search', {
+    params: { q, city_id: cityId, limit },
+  })
+}
+
+/* ------------------------------------------------------------------
  * Cars — detail
  * ------------------------------------------------------------------ */
 

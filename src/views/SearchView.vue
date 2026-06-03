@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-vue-next'
 import SearchResultCard from '@/components/car/SearchResultCard.vue'
@@ -8,6 +8,9 @@ import SortSheet from '@/components/car/SortSheet.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useSearchStore } from '@/stores/search'
 import { useFiltersStore } from '@/stores/filters'
+import { useProfileStore } from '@/stores/profile'
+import { searchModels } from '@/api/cars.service'
+import type { SearchModelResult } from '@/api/backend'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useTelegram } from '@/composables/useTelegram'
 
@@ -16,12 +19,54 @@ const props = defineProps<{ q: string }>()
 const router = useRouter()
 const search = useSearchStore()
 const filters = useFiltersStore()
+const profile = useProfileStore()
 const { haptic } = useTelegram()
 
 const searchText = ref(props.q)
 const filterOpen = ref(false)
 const sortOpen = ref(false)
 const inputEl = ref<HTMLInputElement | null>(null)
+
+/* Model autocomplete (GET /api/search). While suggestions are shown we hide the
+ * results feed — the feed is filtered only once the user picks a model. */
+const suggestions = ref<SearchModelResult[]>([])
+const suggestLoading = ref(false)
+const showSuggestions = computed(() => suggestions.value.length > 0)
+let lastPicked = ''
+let debounce: ReturnType<typeof setTimeout> | null = null
+
+async function fetchSuggestions(q: string) {
+  suggestLoading.value = true
+  try {
+    suggestions.value = await searchModels(q, profile.cityId)
+  } catch {
+    suggestions.value = []
+  } finally {
+    suggestLoading.value = false
+  }
+}
+
+watch(searchText, (q) => {
+  const trimmed = q.trim()
+  if (debounce) clearTimeout(debounce)
+  if (trimmed.length < 2 || trimmed === lastPicked) {
+    suggestions.value = []
+    return
+  }
+  debounce = setTimeout(() => fetchSuggestions(trimmed), 300)
+})
+
+/** Pick a model from the dropdown → filter the feed by it. */
+function pick(s: SearchModelResult) {
+  haptic('light')
+  lastPicked = `${s.brand_name} ${s.model_name}`
+  searchText.value = lastPicked
+  suggestions.value = []
+  filters.apply({ brandId: s.brand_id, modelId: s.model_id })
+  search.query = ''
+  inputEl.value?.blur()
+  search.reload()
+}
 
 const SORT_LABELS: Record<string, string> = {
   date_desc: 'Сначала новые',
@@ -42,25 +87,32 @@ function goBack() {
 }
 
 function submit() {
-  const q = searchText.value.trim()
-  router.replace({ name: 'search', query: q ? { q } : {} })
-  search.setQuery(q)
-  // Drop focus so the on-screen keyboard closes and the bottom tab bar returns
-  // (the search screen lives under the Home tab) — otherwise it's a dead-end.
+  // Enter → take the top suggestion if there is one.
+  if (suggestions.value.length) {
+    pick(suggestions.value[0])
+    return
+  }
   inputEl.value?.blur()
 }
 
 function clearText() {
   searchText.value = ''
-  submit()
+  lastPicked = ''
+  suggestions.value = []
+  filters.apply({ brandId: null, modelId: null })
+  search.query = ''
+  search.reload()
 }
 
 onMounted(() => {
-  search.query = props.q
   searchText.value = props.q
-  search.reload()
-  // Arriving from the Home search field: drop any lingering focus so the
-  // keyboard closes and the bottom tab bar is visible on the results.
+  // Arriving with a query → show model suggestions (not a garbage feed). With no
+  // query → browse the (filtered) feed.
+  if (props.q.trim().length >= 2) {
+    fetchSuggestions(props.q.trim())
+  } else {
+    search.reload()
+  }
   ;(document.activeElement as HTMLElement | null)?.blur?.()
 })
 </script>
@@ -130,8 +182,23 @@ onMounted(() => {
       </div>
     </header>
 
+    <!-- Model suggestions (autocomplete) -->
+    <section v-if="showSuggestions" class="px-2 pt-1">
+      <button
+        v-for="s in suggestions"
+        :key="s.model_id"
+        type="button"
+        class="flex w-full items-center gap-3 rounded-card px-3 py-3 text-left transition-colors active:bg-surface"
+        @click="pick(s)"
+      >
+        <Search :size="18" class="shrink-0 text-text-muted" />
+        <span class="flex-1 text-[15px] text-text">{{ s.brand_name }} {{ s.model_name }}</span>
+        <span class="shrink-0 text-[13px] text-text-faint">{{ s.car_count }}</span>
+      </button>
+    </section>
+
     <!-- Results -->
-    <section class="px-4 pt-1">
+    <section v-else class="px-4 pt-1">
       <!-- First load skeletons -->
       <div v-if="search.loading" class="space-y-6">
         <div v-for="n in 4" :key="n" class="animate-pulse">

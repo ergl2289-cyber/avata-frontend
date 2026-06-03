@@ -1,5 +1,6 @@
 import { directusRequest } from './directus'
 import * as backend from './backend'
+import { modelsMock } from '@/api/mocks/brands.mock'
 import type {
   CarDetail,
   CarListItem,
@@ -246,6 +247,31 @@ async function getCarByIdBackend(id: number) {
   return {
     data: detailToCarDetail(result),
   } as DirectusItemResponse<CarDetail>
+}
+
+/**
+ * Model autocomplete for the search box. Real: GET /api/search. Mock: filter the
+ * in-memory models by "brand model" substring.
+ */
+export async function searchModels(
+  q: string,
+  cityId?: number | null,
+): Promise<backend.SearchModelResult[]> {
+  const query = q.trim()
+  if (query.length < 2) return []
+  if (!USE_MOCKS) return backend.searchModels(query, cityId)
+  const ql = query.toLowerCase()
+  return modelsMock
+    .filter((m) => `${m.brand.name} ${m.name}`.toLowerCase().includes(ql))
+    .slice(0, 10)
+    .map((m) => ({
+      model_id: m.id,
+      model_name: m.name,
+      brand_id: m.brand.id,
+      brand_name: m.brand.name,
+      car_count: 0,
+      first_photo_url: null,
+    }))
 }
 
 /**
