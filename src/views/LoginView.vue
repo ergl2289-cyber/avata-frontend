@@ -24,14 +24,13 @@ function openOAuth() {
 
 <template>
   <main class="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 pb-24 safe-bottom">
-    <div class="flex flex-col items-center gap-3">
+    <div class="flex flex-col items-center gap-4">
       <img
         :src="logoUrl"
         alt="Avata"
-        class="w-28 select-none"
+        class="w-44 select-none"
         draggable="false"
       />
-      <h1 class="text-[22px] font-bold text-text">AVATA</h1>
       <p class="text-[15px] text-text-muted">Войдите, чтобы продолжить</p>
     </div>
 
