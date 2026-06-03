@@ -5,11 +5,16 @@ import WebApp from '@twa-dev/sdk'
 import logoUrl from '@/assets/logo-avata.webp'
 
 const BOT_ID = '8669280661'
-// Бот Mini App. ?startapp запускает само приложение (если у бота задан главный
-// Mini App). Если открывается просто чат — нужно указать short-name приложения:
-// https://t.me/avata_frontend_bot/<app>. Тогда вход внутри Telegram идёт по
+// Бот Mini App. ?startapp запускает приложение; если ссылку открыли на конкретном
+// объявлении (/car/:id) — прокидываем startapp=car_<id>, чтобы Mini App открыл
+// именно его (см. разбор start_param в main.ts). Внутри Telegram вход идёт по
 // initData — это рабочий путь, когда ссылку открыли во встроенном браузере TG.
-const BOT_URL = 'https://t.me/avata_frontend_bot?startapp'
+const BOT = 'https://t.me/avata_frontend_bot'
+const startParam = (() => {
+  const m = /^\/car\/(\d+)/.exec(window.location.pathname)
+  return m ? `car_${m[1]}` : ''
+})()
+const BOT_URL = `${BOT}?startapp${startParam ? '=' + startParam : ''}`
 
 const redirecting = ref(false)
 

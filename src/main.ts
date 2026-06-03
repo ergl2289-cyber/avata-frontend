@@ -57,6 +57,16 @@ tgStore.init()
   }
 
   app.mount('#app')
+
+  // Deep link: Mini App launched via t.me/<bot>?startapp=car_<id> → open that
+  // listing (carries the link target when opened from Telegram's in-app browser).
+  try {
+    const sp = WebApp.initDataUnsafe?.start_param
+    const m = sp ? /^car_(\d+)$/.exec(sp) : null
+    if (m) await router.push({ name: 'car', params: { id: m[1] } })
+  } catch {
+    /* not launched from a deep link */
+  }
 })()
 
 // Telegram Login Widget popup-mode callback (data-onauth fallback).
