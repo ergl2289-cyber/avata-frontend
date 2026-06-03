@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-vue-next'
 import SearchResultCard from '@/components/car/SearchResultCard.vue'
@@ -10,7 +10,6 @@ import { useSearchStore } from '@/stores/search'
 import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
 import { searchModels } from '@/api/cars.service'
-import type { SearchModelResult } from '@/api/backend'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useTelegram } from '@/composables/useTelegram'
 
@@ -26,47 +25,8 @@ const searchText = ref(props.q)
 const filterOpen = ref(false)
 const sortOpen = ref(false)
 const inputEl = ref<HTMLInputElement | null>(null)
-
-/* Model autocomplete (GET /api/search). While suggestions are shown we hide the
- * results feed — the feed is filtered only once the user picks a model. */
-const suggestions = ref<SearchModelResult[]>([])
-const suggestLoading = ref(false)
-const showSuggestions = computed(() => suggestions.value.length > 0)
-let lastPicked = ''
-let debounce: ReturnType<typeof setTimeout> | null = null
-
-async function fetchSuggestions(q: string) {
-  suggestLoading.value = true
-  try {
-    suggestions.value = await searchModels(q, profile.cityId)
-  } catch {
-    suggestions.value = []
-  } finally {
-    suggestLoading.value = false
-  }
-}
-
-watch(searchText, (q) => {
-  const trimmed = q.trim()
-  if (debounce) clearTimeout(debounce)
-  if (trimmed.length < 2 || trimmed === lastPicked) {
-    suggestions.value = []
-    return
-  }
-  debounce = setTimeout(() => fetchSuggestions(trimmed), 300)
-})
-
-/** Pick a model from the dropdown → filter the feed by it. */
-function pick(s: SearchModelResult) {
-  haptic('light')
-  lastPicked = `${s.brand_name} ${s.model_name}`
-  searchText.value = lastPicked
-  suggestions.value = []
-  filters.apply({ brandId: s.brand_id, modelId: s.model_id })
-  search.query = ''
-  inputEl.value?.blur()
-  search.reload()
-}
+const resolving = ref(false)
+const noMatch = ref(false)
 
 const SORT_LABELS: Record<string, string> = {
   date_desc: 'Сначала новые',
@@ -86,30 +46,63 @@ function goBack() {
   else router.push({ name: 'home' })
 }
 
+/**
+ * Resolve a free-text query → brand/model filter (the backend feed has no text
+ * search, only /api/search model lookup), then show the listings feed directly.
+ * Brand-only query ("bmw") → all cars of that brand; otherwise the matched model.
+ */
+async function runSearch(raw: string) {
+  const query = raw.trim()
+  noMatch.value = false
+
+  if (!query) {
+    filters.apply({ brandId: null, modelId: null })
+    search.reload()
+    return
+  }
+
+  resolving.value = true
+  try {
+    const results = await searchModels(query, profile.cityId)
+    if (!results.length) {
+      noMatch.value = true
+      return
+    }
+    const top = results[0]
+    const ql = query.toLowerCase()
+    const brandLower = top.brand_name.toLowerCase()
+    // "bmw" / "au" → user typed (a prefix of) the brand → show the whole brand.
+    if (brandLower.startsWith(ql) || ql === brandLower) {
+      filters.apply({ brandId: top.brand_id, modelId: null })
+    } else {
+      filters.apply({ brandId: null, modelId: top.model_id })
+    }
+    search.reload()
+  } catch {
+    noMatch.value = true
+  } finally {
+    resolving.value = false
+  }
+}
+
 function submit() {
-  // Enter doesn't auto-pick (that surprised users by rewriting their text).
-  // Just close the keyboard — the suggestion list stays so the user taps a model.
   inputEl.value?.blur()
+  router.replace({ name: 'search', query: searchText.value.trim() ? { q: searchText.value.trim() } : {} })
+  runSearch(searchText.value)
 }
 
 function clearText() {
   searchText.value = ''
-  lastPicked = ''
-  suggestions.value = []
+  noMatch.value = false
   filters.apply({ brandId: null, modelId: null })
-  search.query = ''
+  router.replace({ name: 'search' })
   search.reload()
 }
 
 onMounted(() => {
   searchText.value = props.q
-  // Arriving with a query → show model suggestions (not a garbage feed). With no
-  // query → browse the (filtered) feed.
-  if (props.q.trim().length >= 2) {
-    fetchSuggestions(props.q.trim())
-  } else {
-    search.reload()
-  }
+  if (props.q.trim()) runSearch(props.q)
+  else search.reload()
   ;(document.activeElement as HTMLElement | null)?.blur?.()
 })
 </script>
@@ -184,25 +177,10 @@ onMounted(() => {
       </div>
     </header>
 
-    <!-- Model suggestions (autocomplete) -->
-    <section v-if="showSuggestions" class="px-2 pt-1">
-      <button
-        v-for="s in suggestions"
-        :key="s.model_id"
-        type="button"
-        class="flex w-full items-center gap-3 rounded-card px-3 py-3 text-left transition-colors active:bg-surface"
-        @click="pick(s)"
-      >
-        <Search :size="18" class="shrink-0 text-text-muted" />
-        <span class="flex-1 text-[15px] text-text">{{ s.brand_name }} {{ s.model_name }}</span>
-        <span class="shrink-0 text-[13px] text-text-faint">{{ s.car_count }}</span>
-      </button>
-    </section>
-
     <!-- Results -->
-    <section v-else class="px-4 pt-1">
-      <!-- First load skeletons -->
-      <div v-if="search.loading" class="space-y-6">
+    <section class="px-4 pt-1">
+      <!-- Loading (resolving the query or loading the feed) -->
+      <div v-if="resolving || search.loading" class="space-y-6">
         <div v-for="n in 4" :key="n" class="animate-pulse">
           <div class="aspect-[16/10] w-full rounded-card bg-surface" />
           <div class="space-y-2 pt-3">
@@ -213,9 +191,9 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Empty -->
+      <!-- Nothing matched the query / filters -->
       <EmptyState
-        v-else-if="!search.items.length"
+        v-else-if="noMatch || !search.items.length"
         title="Ничего не найдено"
         subtitle="Измените запрос или сбросьте фильтры"
       />
