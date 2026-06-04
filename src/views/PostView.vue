@@ -47,6 +47,7 @@ if (props.carId != null) {
 const step = ref(0)
 const direction = ref<'fwd' | 'back'>('fwd')
 const submitting = ref(false)
+const errorMsg = ref('')
 
 const steps = [
   { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => true },
@@ -158,11 +159,13 @@ function ensureValid(): boolean {
 async function publish() {
   if (submitting.value || !ensureValid()) return
   submitting.value = true
+  errorMsg.value = ''
   try {
     await store.publish(form, currentDraftId.value ?? undefined)
     notify('success')
     router.push({ name: 'listings', query: { tab: 'moderation' } })
-  } catch {
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Не удалось опубликовать объявление'
     notify('error')
     submitting.value = false
   }
@@ -172,11 +175,13 @@ async function publish() {
 async function saveListing() {
   if (submitting.value || !ensureValid() || editBase == null) return
   submitting.value = true
+  errorMsg.value = ''
   try {
     await store.updateListing(editBase.id, form, editBase)
     notify('success')
     router.push({ name: 'listings', query: { tab: 'moderation' } })
-  } catch {
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Не удалось сохранить изменения'
     notify('error')
     submitting.value = false
   }
@@ -207,6 +212,15 @@ async function saveListing() {
         <component :is="current.component" :key="step" :form="form" />
       </Transition>
     </StepShell>
+
+    <!-- Publish/save error (shows the real backend message for diagnostics) -->
+    <div
+      v-if="errorMsg"
+      class="fixed inset-x-4 bottom-24 z-50 rounded-xl bg-red-500/90 px-4 py-3 text-center text-[13px] leading-snug text-white shadow-lg"
+      @click="errorMsg = ''"
+    >
+      {{ errorMsg }}
+    </div>
   </div>
 </template>
 

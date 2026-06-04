@@ -103,7 +103,13 @@ export const useMyListingsStore = defineStore('myListings', () => {
   async function publish(form: ListingForm, draftId?: string) {
     if (!USE_MOCKS) {
       const { car_id } = await backend.createCar(formToCreateData(form))
-      await uploadNewPhotos(car_id, form.photos)
+      // Photos are non-critical: the listing is already created (pending). A photo
+      // upload failure must not look like the whole publish failed.
+      try {
+        await uploadNewPhotos(car_id, form.photos)
+      } catch (e) {
+        console.error('Photo upload failed (listing still created):', e)
+      }
       if (draftId) deleteDraft(draftId)
       await load()
       return
@@ -126,7 +132,11 @@ export const useMyListingsStore = defineStore('myListings', () => {
         mileage: form.mileage ?? undefined,
         description: form.description.trim() || null,
       })
-      await uploadNewPhotos(carId, form.photos)
+      try {
+        await uploadNewPhotos(carId, form.photos)
+      } catch (e) {
+        console.error('Photo upload failed (edits still saved):', e)
+      }
       invalidateCar(carId)
       await load()
       return

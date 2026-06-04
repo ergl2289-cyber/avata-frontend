@@ -113,7 +113,8 @@ function openSeller() {
   const sid = sellerId.value
   if (!sid) return
   haptic('light')
-  router.push({ name: 'seller', params: { id: sid } })
+  // Pass the name through — the backend has no seller-profile endpoint yet.
+  router.push({ name: 'seller', params: { id: sid }, query: sellerName.value ? { name: sellerName.value } : {} })
 }
 
 /** Show the toggle only when the collapsed text is actually clipped. */

@@ -1,22 +1,26 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ChevronLeft, Car, Star, MessageSquare, ImagePlus } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ChevronLeft, Star, MessageSquare, ImagePlus } from 'lucide-vue-next'
 import CarCard from '@/components/car/CarCard.vue'
 import { backend } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 import { assetUrl } from '@/api/assets'
+import logoUrl from '@/assets/logo-avata.webp'
 import { useTelegram } from '@/composables/useTelegram'
 import { useTelegramStore } from '@/stores/telegram'
 
 const props = defineProps<{ id: string }>()
+const route = useRoute()
 const router = useRouter()
 const { haptic } = useTelegram()
 const tg = useTelegramStore()
 
 const tab = ref<'listings' | 'reviews'>('listings')
 const loading = ref(true)
-const sellerName = ref('')
+// Name passed from the listing card (the backend has no seller-profile endpoint yet).
+const sellerName = ref<string>((route.query.name as string) || '')
+const sellerInitial = computed(() => (sellerName.value.trim()[0] ?? '?').toUpperCase())
 const sellerRating = ref<number | null>(null)
 const reviewCount = ref(0)
 const listings = ref<CarListItem[]>([])
@@ -150,7 +154,6 @@ onMounted(async () => {
       likes_global: f.likes_global,
       technical_specs: null,
     }))
-    sellerName.value = carsRes.items[0]?.model_name ? `${carsRes.items[0].brand_name}` : ''
   } catch {
     /* ignore */
   } finally {
@@ -180,8 +183,14 @@ async function loadReviews() {
         >
           <ChevronLeft :size="24" />
         </button>
+        <div
+          v-if="!loading"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted"
+        >
+          {{ sellerInitial }}
+        </div>
         <div v-if="!loading" class="min-w-0 flex-1">
-          <h1 class="truncate text-[17px] font-semibold text-text">{{ sellerName }}</h1>
+          <h1 class="truncate text-[17px] font-semibold text-text">{{ sellerName || 'Продавец' }}</h1>
           <p class="text-[12px] text-text-muted">
             <template v-if="sellerRating != null">
               <Star :size="12" class="mb-px inline text-yellow-400" fill="currentColor" />
@@ -220,9 +229,7 @@ async function loadReviews() {
       <!-- Listings -->
       <template v-else-if="tab === 'listings'">
         <div v-if="!listings.length" class="flex flex-col items-center gap-3 py-20 text-center">
-          <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
-            <Car :size="26" :stroke-width="1.6" class="text-text-muted" />
-          </div>
+          <img :src="logoUrl" alt="Avata" class="w-28 select-none opacity-90" draggable="false" />
           <p class="text-[15px] text-text">Нет объявлений</p>
         </div>
         <div v-else class="grid grid-cols-2 gap-x-3 gap-y-5">
@@ -247,6 +254,7 @@ async function loadReviews() {
           </button>
         </div>
         <div v-if="!reviews.length" class="flex flex-col items-center gap-3 py-16 text-center">
+          <img :src="logoUrl" alt="Avata" class="w-28 select-none opacity-90" draggable="false" />
           <p class="text-[15px] text-text">Отзывов пока нет</p>
         </div>
         <div v-else class="space-y-4">
