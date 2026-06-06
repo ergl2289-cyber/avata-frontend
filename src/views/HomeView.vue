@@ -74,7 +74,9 @@ function onCityPicked(city: City) {
 }
 
 onMounted(() => {
-  if (isBrowser.value && !profile.hasCity) {
+  // No city yet (incl. fresh Telegram users) → prompt, so it's saved to the DB
+  // profile, which the backend uses to build the region feed.
+  if (!profile.hasCity) {
     cityPickerOpen.value = true
   }
   cars.reload()

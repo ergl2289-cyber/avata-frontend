@@ -67,7 +67,17 @@ export const useProfileStore = defineStore('profile', () => {
       userId.value = profile.id
       regionName.value = profile.region_name
       if (profile.city_id && profile.city_name) {
+        // DB is the source of truth — the backend builds the feed from it.
         setCity({ id: profile.city_id, name: profile.city_name, regionId: null }, false)
+      } else if (city.value) {
+        // We have a locally-chosen city but the backend profile has none (city set
+        // before auth, a failed earlier sync, or a backend DB reset). Push it to the
+        // DB so the server-side region feed matches what the user sees.
+        try {
+          await setUserCity(city.value.id)
+        } catch {
+          /* keep local city; will retry on next launch */
+        }
       }
       // In browser mode (no initData) — populate telegram user from server data
       const tgStore = useTelegramStore()
