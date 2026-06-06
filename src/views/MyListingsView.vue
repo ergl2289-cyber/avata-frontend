@@ -81,7 +81,13 @@ function createListing() {
 const actionOpen = ref(false)
 const actionCar = ref<MyCarListItem | null>(null)
 const actionTitle = computed(() => (actionCar.value ? carTitle(actionCar.value) : ''))
-const isArchived = computed(() => (actionCar.value ? !actionCar.value.is_active : false))
+// Archive/republish only make sense for approved listings (not ones in moderation).
+const canArchive = computed(
+  () => actionCar.value?.moderation_status === 'approved' && actionCar.value.is_active,
+)
+const canRepublish = computed(
+  () => actionCar.value?.moderation_status === 'approved' && !actionCar.value.is_active,
+)
 
 function openMenu(car: MyCarListItem) {
   actionCar.value = car
@@ -94,13 +100,20 @@ function editListing() {
   if (c) router.push({ name: 'post', query: { car: c.id } })
 }
 
-async function toggleArchive() {
+async function doArchive() {
   const c = actionCar.value
   actionOpen.value = false
   if (!c) return
   haptic('light')
-  if (c.is_active) await store.archive(c.id)
-  else await store.restore(c.id)
+  await store.archive(c.id)
+}
+
+async function doRestore() {
+  const c = actionCar.value
+  actionOpen.value = false
+  if (!c) return
+  haptic('light')
+  await store.restore(c.id)
 }
 
 const deleteConfirmOpen = ref(false)
@@ -240,12 +253,20 @@ onMounted(() => store.load())
           <Pencil :size="20" :stroke-width="1.8" /> Редактировать
         </button>
         <button
+          v-if="canArchive"
           type="button"
           class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] text-text transition-colors active:bg-surface-2"
-          @click="toggleArchive"
+          @click="doArchive"
         >
-          <component :is="isArchived ? ArchiveRestore : Archive" :size="20" :stroke-width="1.8" />
-          {{ isArchived ? 'Вернуть из архива' : 'В архив' }}
+          <Archive :size="20" :stroke-width="1.8" /> В архив
+        </button>
+        <button
+          v-if="canRepublish"
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] text-text transition-colors active:bg-surface-2"
+          @click="doRestore"
+        >
+          <ArchiveRestore :size="20" :stroke-width="1.8" /> Опубликовать снова
         </button>
         <button
           type="button"

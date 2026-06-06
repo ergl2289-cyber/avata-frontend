@@ -133,10 +133,15 @@ export const useMyListingsStore = defineStore('myListings', () => {
    */
   async function updateListing(carId: number, form: ListingForm, base: CarDetail) {
     if (!USE_MOCKS) {
+      // Every edit goes back to moderation: take it off the public feed
+      // (is_active=false) so an unreviewed edit isn't live. NOTE для бэка: PATCH
+      // должен также сбрасывать moderation_status='pending', чтобы админ заново
+      // одобрил. Пока ставим pending оптимистично на фронте.
       await backend.updateCar(carId, {
         price: form.price ?? undefined,
         mileage: form.mileage ?? undefined,
         description: form.description.trim() || null,
+        is_active: false,
       })
       try {
         await uploadNewPhotos(carId, form.photos)
@@ -144,7 +149,13 @@ export const useMyListingsStore = defineStore('myListings', () => {
         console.error('Photo upload failed (edits still saved):', e)
       }
       invalidateCar(carId)
-      await load()
+      const item = published.value.find((c) => c.id === carId)
+      if (item) {
+        if (form.price != null) item.price = form.price
+        if (form.mileage != null) item.mileage = form.mileage
+        item.moderation_status = 'pending'
+        item.is_active = false
+      }
       return
     }
     const detail = formToDetail(form, { ...base, id: carId })
