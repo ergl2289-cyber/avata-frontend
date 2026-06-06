@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-vue-next'
+import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown, Car, ChevronRight } from 'lucide-vue-next'
 import SearchResultCard from '@/components/car/SearchResultCard.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import SortSheet from '@/components/car/SortSheet.vue'
@@ -10,6 +10,7 @@ import { useSearchStore } from '@/stores/search'
 import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
 import { searchModels } from '@/api/cars.service'
+import type { SearchModelResult } from '@/api/backend'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useTelegram } from '@/composables/useTelegram'
 
@@ -27,6 +28,58 @@ const sortOpen = ref(false)
 const inputEl = ref<HTMLInputElement | null>(null)
 const resolving = ref(false)
 const noMatch = ref(false)
+
+// As-you-type model suggestions (Avito-style dropdown).
+const suggestions = ref<SearchModelResult[]>([])
+const showSuggestions = ref(false)
+let sugTimer: ReturnType<typeof setTimeout> | null = null
+// Skip the next watch tick when we set searchText programmatically (select/submit).
+let suppressSuggest = false
+
+watch(searchText, (val) => {
+  if (suppressSuggest) { suppressSuggest = false; return }
+  const q = val.trim()
+  if (q.length < 2) {
+    suggestions.value = []
+    showSuggestions.value = false
+    if (sugTimer) clearTimeout(sugTimer)
+    return
+  }
+  if (sugTimer) clearTimeout(sugTimer)
+  sugTimer = setTimeout(async () => {
+    try {
+      const res = await searchModels(q, profile.cityId)
+      // Ignore stale responses (query moved on while the request was in flight).
+      if (searchText.value.trim() !== q) return
+      suggestions.value = res
+      showSuggestions.value = true
+    } catch {
+      suggestions.value = []
+    }
+  }, 200)
+})
+
+/** Pick a suggestion → show that model's listings directly. */
+function selectSuggestion(s: SearchModelResult) {
+  haptic('light')
+  suppressSuggest = true
+  searchText.value = `${s.brand_name} ${s.model_name}`.trim()
+  showSuggestions.value = false
+  noMatch.value = false
+  inputEl.value?.blur()
+  router.replace({ name: 'search', query: { q: searchText.value } })
+  filters.apply({ brandId: null, modelId: s.model_id })
+  search.reload()
+}
+
+function hideSuggestions() {
+  showSuggestions.value = false
+  if (sugTimer) clearTimeout(sugTimer)
+}
+
+onBeforeUnmount(() => {
+  if (sugTimer) clearTimeout(sugTimer)
+})
 
 const SORT_LABELS: Record<string, string> = {
   date_desc: 'Сначала новые',
@@ -87,16 +140,21 @@ async function runSearch(raw: string) {
 
 function submit() {
   inputEl.value?.blur()
+  hideSuggestions()
   router.replace({ name: 'search', query: searchText.value.trim() ? { q: searchText.value.trim() } : {} })
   runSearch(searchText.value)
 }
 
 function clearText() {
+  suppressSuggest = true
   searchText.value = ''
   noMatch.value = false
+  hideSuggestions()
+  suggestions.value = []
   filters.apply({ brandId: null, modelId: null })
   router.replace({ name: 'search' })
   search.reload()
+  inputEl.value?.focus()
 }
 
 onMounted(() => {
@@ -177,8 +235,31 @@ onMounted(() => {
       </div>
     </header>
 
+    <!-- As-you-type suggestions (tap → that model's listings) -->
+    <section v-if="showSuggestions && suggestions.length" class="px-2 pt-1">
+      <button
+        v-for="(s, i) in suggestions"
+        :key="s.model_id"
+        type="button"
+        class="flex w-full items-center gap-3 px-2 py-3 text-left transition-colors active:bg-surface"
+        :class="i ? 'border-t border-border/60' : ''"
+        @click="selectSuggestion(s)"
+      >
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2">
+          <Car :size="18" class="text-text-muted" />
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[15px] text-text">{{ s.brand_name }} {{ s.model_name }}</span>
+          <span class="block text-[12px] text-text-muted">
+            Автомобили<template v-if="s.car_count"> · {{ s.car_count }}</template>
+          </span>
+        </span>
+        <ChevronRight :size="18" class="shrink-0 text-text-faint" />
+      </button>
+    </section>
+
     <!-- Results -->
-    <section class="px-4 pt-1">
+    <section v-else class="px-4 pt-1">
       <!-- Loading (resolving the query or loading the feed) -->
       <div v-if="resolving || search.loading" class="space-y-6">
         <div v-for="n in 4" :key="n" class="animate-pulse">
