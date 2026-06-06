@@ -36,15 +36,18 @@ export const useTelegramStore = defineStore('telegram', () => {
     }
   }
 
-  /** Send initData to backend — validates HMAC and returns JWT. */
+  /**
+   * Send initData to backend — validates HMAC and returns a fresh JWT.
+   * We always re-login on launch (initData is fresh and cheap): trusting a cached
+   * token blindly left users stuck on a stale JWT after the backend DB was reset
+   * → every request 401'd with "User not found". A fresh login binds the token to
+   * the current backend user. Falls back to a stored token only if login fails
+   * (e.g. auth endpoint briefly unreachable).
+   */
   async function authenticate(): Promise<boolean> {
     if (!initData.value) {
       authError.value = 'Init data not available'
       return false
-    }
-    if (getToken()) {
-      isAuthenticated.value = true
-      return true
     }
     authLoading.value = true
     authError.value = null
@@ -53,6 +56,10 @@ export const useTelegramStore = defineStore('telegram', () => {
       isAuthenticated.value = true
       return true
     } catch (e) {
+      if (getToken()) {
+        isAuthenticated.value = true
+        return true
+      }
       authError.value = e instanceof Error ? e.message : 'Auth failed'
       return false
     } finally {

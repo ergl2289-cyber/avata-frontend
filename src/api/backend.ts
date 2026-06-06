@@ -1,4 +1,4 @@
-import { getToken } from './auth'
+import { getToken, clearToken } from './auth'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -38,6 +38,9 @@ async function request<T>(path: string, opts: BackendRequestInit = {}): Promise<
   })
 
   if (!resp.ok) {
+    // Stale/invalid token (e.g. backend user no longer exists) → drop it so the
+    // next launch re-authenticates with fresh initData instead of looping on 401.
+    if (resp.status === 401) clearToken()
     const text = await resp.text().catch(() => '')
     throw new Error(`API ${resp.status} ${path}: ${text || resp.statusText}`)
   }
