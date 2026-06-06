@@ -60,7 +60,8 @@ function enterSearch() {
   if (entering.value) return
   haptic('light')
   entering.value = true
-  setTimeout(() => router.push({ name: 'search' }), 260)
+  // Navigate once the header has morphed into the search layout → seamless swap.
+  setTimeout(() => router.push({ name: 'search' }), 290)
 }
 
 function onFiltersApplied() {
@@ -98,7 +99,7 @@ onActivated(() => {
   <main class="min-h-dvh pb-24">
     <!-- Sticky header -->
     <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur-xl safe-top">
-      <div class="flex items-center px-4 py-3">
+      <div class="flex items-center gap-1 px-3 py-3">
         <div class="relative flex-1">
           <Search :size="20" class="pointer-events-none absolute left-3.5 top-2.5 text-text-muted" />
           <input
@@ -114,10 +115,10 @@ onActivated(() => {
         <!-- Action buttons collapse smoothly when entering search -->
         <div
           class="flex items-center gap-2.5 overflow-hidden"
-          :class="entering ? 'ml-0 max-w-0 opacity-0' : 'ml-2.5 max-w-[112px] opacity-100'"
+          :class="entering ? 'ml-0 max-w-0 opacity-0' : 'ml-1.5 max-w-[112px] opacity-100'"
           :style="{
             transition:
-              'max-width 0.34s cubic-bezier(0.16,1,0.3,1), margin 0.34s cubic-bezier(0.16,1,0.3,1), opacity 0.22s ease',
+              'max-width 0.26s cubic-bezier(0.16,1,0.3,1), margin 0.26s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease',
           }"
         >
           <button
@@ -145,6 +146,19 @@ onActivated(() => {
             </span>
           </button>
         </div>
+
+        <!-- «Отменить» fades in as the buttons collapse → matches the search header -->
+        <span
+          class="pointer-events-none shrink-0 overflow-hidden whitespace-nowrap py-1 text-[15px] text-text"
+          :class="entering ? 'max-w-[100px] px-2.5 opacity-100' : 'max-w-0 px-0 opacity-0'"
+          :style="{
+            transition:
+              'max-width 0.26s cubic-bezier(0.16,1,0.3,1), padding 0.26s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease',
+          }"
+          aria-hidden="true"
+        >
+          Отменить
+        </span>
       </div>
     </header>
 

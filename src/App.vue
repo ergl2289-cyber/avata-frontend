@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TabBar from '@/components/layout/TabBar.vue'
 import LoginView from '@/views/LoginView.vue'
@@ -25,6 +25,20 @@ watch(() => tg.isAuthenticated, async (authed) => {
 const showTabBar = computed(() => !route.meta.hideTabBar && !keyboardOpen.value)
 
 const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'ProfileView']
+
+// Home ↔ Search should feel like one screen: skip the page fade between them so
+// the (matching) header doesn't flash — the content just swaps in place.
+const SEAMLESS = new Set(['home', 'search'])
+const transitionName = ref('page')
+let prevName: unknown = route.name
+watch(
+  () => route.name,
+  (to) => {
+    transitionName.value =
+      SEAMLESS.has(to as string) && SEAMLESS.has(prevName as string) ? 'soft' : 'page'
+    prevName = to
+  },
+)
 </script>
 
 <template>
@@ -52,7 +66,7 @@ const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'Profil
     <!-- Main app — Telegram (authenticated) or Browser (authenticated) -->
     <template v-else>
       <RouterView v-slot="{ Component }">
-        <transition name="page">
+        <transition :name="transitionName">
           <keep-alive :include="KEEP_ALIVE_VIEWS">
             <component :is="Component" />
           </keep-alive>
@@ -83,6 +97,22 @@ const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'Profil
   transform: translateY(5px);
 }
 .page-leave-to {
+  opacity: 0;
+}
+
+/* Home ↔ Search: pure opacity crossfade, no translate. The headers are aligned
+   (buttons morph into «Отменить»), so this reads as one continuous screen. */
+.soft-enter-active,
+.soft-leave-active {
+  transition: opacity 0.22s ease;
+}
+.soft-leave-active {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.soft-enter-from,
+.soft-leave-to {
   opacity: 0;
 }
 
