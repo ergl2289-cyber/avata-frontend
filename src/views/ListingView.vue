@@ -7,6 +7,7 @@ import logoUrl from '@/assets/logo-avata.webp'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
+import BoostBadge from '@/components/car/BoostBadge.vue'
 import { getCarById, getSimilarCars, recordCarView, backend } from '@/api/cars.service'
 import { getCachedCar, setCachedCar } from '@/api/cars.cache'
 import { galleryUrls } from '@/api/assets'
@@ -350,6 +351,7 @@ onMounted(load)
       <div class="px-4 pb-28">
         <!-- Price + title -->
         <section class="pt-4">
+          <BoostBadge :boosted="car.is_boosted" :until="car.boosted_until" class="mb-2" />
           <p class="text-[26px] font-bold leading-none text-text">{{ price }}</p>
           <h1 class="mt-2 text-[19px] font-semibold leading-snug text-text">{{ title }}</h1>
           <p class="mt-1 text-[14px] text-text-muted">{{ subtitle }}</p>

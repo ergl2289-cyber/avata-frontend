@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-vue-next'
+import { Pencil, Archive, ArchiveRestore, Trash2, Rocket } from 'lucide-vue-next'
 import MyListingCard from '@/components/listing/MyListingCard.vue'
 import DraftCard from '@/components/listing/DraftCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
+import BoostSheet from '@/components/car/BoostSheet.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useMyListingsStore } from '@/stores/myListings'
 import { useTelegram } from '@/composables/useTelegram'
@@ -114,6 +115,23 @@ async function doRestore() {
   if (!c) return
   haptic('light')
   await store.restore(c.id)
+}
+
+// Boost (paid pin)
+const boostOpen = ref(false)
+const boostCarId = ref<number | null>(null)
+const canBoost = computed(
+  () => actionCar.value?.moderation_status === 'approved' && actionCar.value.is_active,
+)
+function boostListing() {
+  const c = actionCar.value
+  actionOpen.value = false
+  if (!c) return
+  boostCarId.value = c.id
+  boostOpen.value = true
+}
+function onBoosted() {
+  store.load()
 }
 
 const deleteConfirmOpen = ref(false)
@@ -246,6 +264,14 @@ onMounted(() => store.load())
     <BottomSheet v-model:open="actionOpen" :title="actionTitle">
       <div class="space-y-1 pb-2">
         <button
+          v-if="canBoost"
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] font-medium text-text transition-colors active:bg-surface-2"
+          @click="boostListing"
+        >
+          <Rocket :size="20" :stroke-width="1.8" /> Поднять в топ
+        </button>
+        <button
           type="button"
           class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] text-text transition-colors active:bg-surface-2"
           @click="editListing"
@@ -285,6 +311,8 @@ onMounted(() => store.load())
       confirm-text="Удалить"
       @confirm="confirmDelete"
     />
+
+    <BoostSheet v-model:open="boostOpen" :car-id="boostCarId" @boosted="onBoosted" />
   </main>
 </template>
 

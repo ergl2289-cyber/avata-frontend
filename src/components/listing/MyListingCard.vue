@@ -7,6 +7,7 @@ import { coverUrl } from '@/api/assets'
 import { carTitle, formatPrice, groupThousands } from '@/utils/format'
 import { useTelegram } from '@/composables/useTelegram'
 import StatusChip from './StatusChip.vue'
+import BoostBadge from '@/components/car/BoostBadge.vue'
 
 const props = defineProps<{ car: MyCarListItem; archived?: boolean }>()
 const emit = defineEmits<{ menu: [car: MyCarListItem] }>()
@@ -64,6 +65,7 @@ function openMenu() {
           <Archive :size="13" :stroke-width="2" /> В архиве
         </span>
         <StatusChip v-else :status="car.moderation_status" />
+        <BoostBadge :boosted="car.is_boosted" :until="car.boosted_until" compact />
         <span class="flex items-center gap-1 text-[12px] text-text-muted">
           <Eye :size="14" :stroke-width="1.8" /> {{ groupThousands(car.views_global) }}
         </span>

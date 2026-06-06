@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Eye, Heart } from 'lucide-vue-next'
 import PhotoGallery from './PhotoGallery.vue'
 import LikeButton from './LikeButton.vue'
+import BoostBadge from './BoostBadge.vue'
 import type { CarListItem } from '@/types/car'
 import { galleryUrls } from '@/api/assets'
 import { carSpecLine, carTitle, formatMileage, formatPrice, formatListingDate } from '@/utils/format'
@@ -35,6 +36,11 @@ function open() {
       <div class="absolute right-2.5 top-2.5">
         <LikeButton :car-id="car.id" />
       </div>
+      <BoostBadge
+        :boosted="car.is_boosted"
+        :until="car.boosted_until"
+        class="absolute left-2.5 top-2.5"
+      />
     </div>
 
     <!-- Info -->

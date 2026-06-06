@@ -7,6 +7,7 @@ import { coverUrl } from '@/api/assets'
 import { carTitle, formatMileage, formatPrice } from '@/utils/format'
 import { useTelegram } from '@/composables/useTelegram'
 import LikeButton from './LikeButton.vue'
+import BoostBadge from './BoostBadge.vue'
 
 const props = defineProps<{ car: CarListItem }>()
 
@@ -46,6 +47,11 @@ function open() {
       <div class="absolute right-2 top-2">
         <LikeButton :car-id="car.id" />
       </div>
+      <BoostBadge
+        :boosted="car.is_boosted"
+        :until="car.boosted_until"
+        class="absolute left-2 top-2"
+      />
     </div>
 
     <!-- Info -->

@@ -120,6 +120,8 @@ export interface CarListFeedItem {
   date_created: string
   moderation_status?: string
   is_active?: boolean
+  is_boosted?: boolean
+  boosted_until?: string | null
 }
 
 export interface CarFeedResponse {
@@ -256,6 +258,8 @@ export interface CarDetailResponse {
   legal: LegalData | null
   photos: PhotoInfo[]
   is_liked: boolean
+  is_boosted?: boolean
+  boosted_until?: string | null
 }
 
 export function getCarDetail(id: number): Promise<CarDetailResponse> {
@@ -420,4 +424,78 @@ export interface SellerRating {
 
 export function getSellerRating(sellerId: number): Promise<SellerRating> {
   return request<SellerRating>(`/api/reviews/seller/${sellerId}/rating`)
+}
+
+/* ------------------------------------------------------------------
+ * Boost & payments (Telegram Stars)
+ * ------------------------------------------------------------------ */
+
+export interface BoostProduct {
+  id: number
+  name: string
+  duration_hours: number
+  price_rub: number
+  price_stars: number
+}
+
+export interface OrderResult {
+  order_id: number
+  amount_rub: number
+  amount_stars: number
+  duration_hours: number
+  status: string
+}
+
+/** Boost tariffs (99₽/3д … 599₽/30д). */
+export function getBoostProducts(): Promise<BoostProduct[]> {
+  return request<BoostProduct[]>('/api/products', { params: { type: 'boost' } })
+}
+
+/** Create a boost order for a listing → returns order id + amount. */
+export function createBoostOrder(carId: number, variantId: number): Promise<OrderResult> {
+  return request<OrderResult>('/api/orders', {
+    method: 'POST',
+    json: { variant_id: variantId, target_type: 'car.boost', target_id: carId },
+  })
+}
+
+/** Get the Telegram Stars invoice URL for an order → WebApp.openInvoice(url). */
+export function getStarsInvoice(orderId: number): Promise<{ invoice_url: string }> {
+  return request<{ invoice_url: string }>(`/api/orders/${orderId}/stars-invoice`, {
+    method: 'POST',
+  })
+}
+
+/* ------------------------------------------------------------------
+ * Complaints
+ * ------------------------------------------------------------------ */
+
+export type ComplaintReason = 'spam' | 'scam' | 'inappropriate' | 'duplicate' | 'other'
+
+/** Report a listing. 409 if already reported by this user. */
+export function reportCar(
+  carId: number,
+  reason: ComplaintReason,
+  text?: string | null,
+): Promise<{ complaint_id: number; status: string }> {
+  return request<{ complaint_id: number; status: string }>(`/api/cars/${carId}/complaint`, {
+    method: 'POST',
+    json: { reason, text: text ?? null },
+  })
+}
+
+/* ------------------------------------------------------------------
+ * Consent & account
+ * ------------------------------------------------------------------ */
+
+export function getConsentStatus(): Promise<{ consented: boolean }> {
+  return request<{ consented: boolean }>('/api/auth/consent-status')
+}
+
+export function acceptConsent(): Promise<{ status: string }> {
+  return request<{ status: string }>('/api/auth/consent', { method: 'POST', json: {} })
+}
+
+export function deleteAccount(): Promise<{ status: string }> {
+  return request<{ status: string }>('/api/users/me', { method: 'DELETE' })
 }

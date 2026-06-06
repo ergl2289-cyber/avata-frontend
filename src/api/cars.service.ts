@@ -75,6 +75,8 @@ export function feedItemToList(f: backend.CarListFeedItem): CarListItem {
       : [],
     views_global: f.views_global,
     likes_global: f.likes_global,
+    is_boosted: f.is_boosted ?? false,
+    boosted_until: f.boosted_until ?? null,
     technical_specs: null,
   }
 }
@@ -115,6 +117,8 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
     description: d.description,
     views_global: d.views_global,
     likes_global: d.likes_global,
+    is_boosted: d.is_boosted ?? false,
+    boosted_until: d.boosted_until ?? null,
     moderation_status: d.moderation_status as 'approved' | 'pending' | 'rejected' | 'draft',
     seller,
     technical_specs: d.technical

@@ -98,6 +98,9 @@ export interface CarListItem {
   files: CarFileJunction[]
   views_global: number
   likes_global: number
+  /** Paid boost — listing pinned to the top of feeds until `boosted_until`. */
+  is_boosted?: boolean
+  boosted_until?: string | null
   technical_specs: Pick<
     TechnicalSpecs,
     'engine_volume' | 'transmission' | 'engine_power' | 'fuel_type' | 'drive_type' | 'body_type'
