@@ -323,6 +323,11 @@ export function updateCar(
   })
 }
 
+/** Permanently delete a listing (owner only; cascades likes/views/photos). */
+export function deleteCar(id: number): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/cars/${id}`, { method: 'DELETE' })
+}
+
 /* ------------------------------------------------------------------
  * Cars — photos
  * ------------------------------------------------------------------ */

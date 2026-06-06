@@ -66,7 +66,7 @@ export function feedItemToList(f: backend.CarListFeedItem): CarListItem {
     year: f.year,
     mileage: f.mileage,
     price: f.price,
-    is_active: true,
+    is_active: f.is_active ?? true,
     date_created: f.date_created,
     model: { id: 0, name: f.model_name, brand: { id: 0, name: f.brand_name } },
     city: { id: 0, name: f.city_name },

@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Eye, Heart, ImageOff, Pencil } from 'lucide-vue-next'
+import { Eye, Heart, ImageOff, MoreVertical, Archive } from 'lucide-vue-next'
 import type { MyCarListItem } from '@/types/car'
 import { coverUrl } from '@/api/assets'
 import { carTitle, formatPrice, groupThousands } from '@/utils/format'
 import { useTelegram } from '@/composables/useTelegram'
 import StatusChip from './StatusChip.vue'
 
-const props = defineProps<{ car: MyCarListItem }>()
+const props = defineProps<{ car: MyCarListItem; archived?: boolean }>()
+const emit = defineEmits<{ menu: [car: MyCarListItem] }>()
 
 const router = useRouter()
 const { haptic } = useTelegram()
@@ -20,10 +21,9 @@ function open() {
   haptic('light')
   router.push({ name: 'car', params: { id: props.car.id } })
 }
-function edit() {
+function openMenu() {
   haptic('light')
-  // editing reuses the creation wizard, prefilled from this listing
-  router.push({ name: 'post', query: { car: props.car.id } })
+  emit('menu', props.car)
 }
 </script>
 
@@ -46,18 +46,24 @@ function edit() {
         </p>
         <button
           type="button"
-          aria-label="Редактировать"
+          aria-label="Действия"
           class="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-transform duration-fast ease-out-ios active:scale-90"
-          @click.stop.prevent="edit"
+          @click.stop.prevent="openMenu"
         >
-          <Pencil :size="18" :stroke-width="2" />
+          <MoreVertical :size="18" :stroke-width="2" />
         </button>
       </div>
 
       <p class="mt-0.5 text-[16px] font-bold leading-none text-text">{{ formatPrice(car.price) }}</p>
 
       <div class="mt-auto flex items-center gap-3 pt-2">
-        <StatusChip :status="car.moderation_status" />
+        <span
+          v-if="archived"
+          class="inline-flex items-center gap-1 rounded-pill bg-surface-2 px-2 py-0.5 text-[12px] font-medium text-text-muted"
+        >
+          <Archive :size="13" :stroke-width="2" /> В архиве
+        </span>
+        <StatusChip v-else :status="car.moderation_status" />
         <span class="flex items-center gap-1 text-[12px] text-text-muted">
           <Eye :size="14" :stroke-width="1.8" /> {{ groupThousands(car.views_global) }}
         </span>

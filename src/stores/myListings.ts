@@ -38,13 +38,19 @@ export const useMyListingsStore = defineStore('myListings', () => {
   const published = ref<MyCarListItem[]>([])
   const loading = ref(false)
 
-  const active = computed(() => published.value.filter((c) => c.moderation_status === 'approved'))
+  const active = computed(() =>
+    published.value.filter((c) => c.moderation_status === 'approved' && c.is_active),
+  )
   const moderation = computed(() =>
     published.value.filter((c) => c.moderation_status === 'pending'),
   )
+  // Published listings taken off display (approved but is_active=false) — shown in Архив.
+  const archivedListings = computed(() =>
+    published.value.filter((c) => c.moderation_status === 'approved' && !c.is_active),
+  )
 
   const counts = computed(() => ({
-    archive: drafts.value.length,
+    archive: drafts.value.length + archivedListings.value.length,
     active: active.value.length,
     moderation: moderation.value.length,
   }))
@@ -150,12 +156,39 @@ export const useMyListingsStore = defineStore('myListings', () => {
     else published.value.unshift(item)
   }
 
+  function setActive(id: number, value: boolean) {
+    const item = published.value.find((c) => c.id === id)
+    if (item) item.is_active = value
+  }
+
+  /** Take a published listing off display (Архив). Real: PATCH is_active=false. */
+  async function archive(id: number) {
+    if (!USE_MOCKS) await backend.updateCar(id, { is_active: false })
+    setActive(id, false)
+    invalidateCar(id)
+  }
+
+  /** Return an archived listing to display. Real: PATCH is_active=true. */
+  async function restore(id: number) {
+    if (!USE_MOCKS) await backend.updateCar(id, { is_active: true })
+    setActive(id, true)
+    invalidateCar(id)
+  }
+
+  /** Permanently delete a published listing. Real: DELETE /api/cars/{id}. */
+  async function removeListing(id: number) {
+    if (!USE_MOCKS) await backend.deleteCar(id)
+    published.value = published.value.filter((c) => c.id !== id)
+    invalidateCar(id)
+  }
+
   return {
     drafts,
     published,
     loading,
     active,
     moderation,
+    archivedListings,
     counts,
     load,
     getDraft,
@@ -163,6 +196,9 @@ export const useMyListingsStore = defineStore('myListings', () => {
     deleteDraft,
     publish,
     updateListing,
+    archive,
+    restore,
+    removeListing,
   }
 })
 

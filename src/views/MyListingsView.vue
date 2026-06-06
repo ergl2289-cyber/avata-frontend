@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-vue-next'
 import MyListingCard from '@/components/listing/MyListingCard.vue'
 import DraftCard from '@/components/listing/DraftCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
+import BottomSheet from '@/components/ui/BottomSheet.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useMyListingsStore } from '@/stores/myListings'
 import { useTelegram } from '@/composables/useTelegram'
+import { carTitle } from '@/utils/format'
+import type { MyCarListItem } from '@/types/car'
 
 defineOptions({ name: 'MyListingsView' })
 
@@ -73,6 +77,43 @@ function createListing() {
   router.push({ name: 'post' })
 }
 
+/* ---- Actions on a published listing (edit / archive / delete) ---- */
+const actionOpen = ref(false)
+const actionCar = ref<MyCarListItem | null>(null)
+const actionTitle = computed(() => (actionCar.value ? carTitle(actionCar.value) : ''))
+const isArchived = computed(() => (actionCar.value ? !actionCar.value.is_active : false))
+
+function openMenu(car: MyCarListItem) {
+  actionCar.value = car
+  actionOpen.value = true
+}
+
+function editListing() {
+  const c = actionCar.value
+  actionOpen.value = false
+  if (c) router.push({ name: 'post', query: { car: c.id } })
+}
+
+async function toggleArchive() {
+  const c = actionCar.value
+  actionOpen.value = false
+  if (!c) return
+  haptic('light')
+  if (c.is_active) await store.archive(c.id)
+  else await store.restore(c.id)
+}
+
+const deleteConfirmOpen = ref(false)
+function askDelete() {
+  actionOpen.value = false
+  deleteConfirmOpen.value = true
+}
+async function confirmDelete() {
+  const c = actionCar.value
+  if (c) await store.removeListing(c.id)
+  actionCar.value = null
+}
+
 onMounted(() => store.load())
 </script>
 
@@ -120,13 +161,20 @@ onMounted(() => store.load())
         </div>
       </div>
 
-      <!-- Archive (drafts) -->
+      <!-- Archive (off-display listings + drafts) -->
       <TransitionGroup
-        v-else-if="tab === 'archive' && store.drafts.length"
+        v-else-if="tab === 'archive' && (store.archivedListings.length || store.drafts.length)"
         name="list"
         tag="div"
         class="space-y-4"
       >
+        <MyListingCard
+          v-for="c in store.archivedListings"
+          :key="'a' + c.id"
+          :car="c"
+          archived
+          @menu="openMenu"
+        />
         <DraftCard
           v-for="d in store.drafts"
           :key="d.id"
@@ -136,14 +184,24 @@ onMounted(() => store.load())
       </TransitionGroup>
 
       <!-- Active -->
-      <div v-else-if="tab === 'active' && store.active.length" class="space-y-4">
-        <MyListingCard v-for="c in store.active" :key="c.id" :car="c" />
-      </div>
+      <TransitionGroup
+        v-else-if="tab === 'active' && store.active.length"
+        name="list"
+        tag="div"
+        class="space-y-4"
+      >
+        <MyListingCard v-for="c in store.active" :key="c.id" :car="c" @menu="openMenu" />
+      </TransitionGroup>
 
       <!-- Moderation -->
-      <div v-else-if="tab === 'moderation' && store.moderation.length" class="space-y-4">
-        <MyListingCard v-for="c in store.moderation" :key="c.id" :car="c" />
-      </div>
+      <TransitionGroup
+        v-else-if="tab === 'moderation' && store.moderation.length"
+        name="list"
+        tag="div"
+        class="space-y-4"
+      >
+        <MyListingCard v-for="c in store.moderation" :key="c.id" :car="c" @menu="openMenu" />
+      </TransitionGroup>
 
       <!-- Empty -->
       <EmptyState v-else :key="tab" :title="empty.title" :subtitle="empty.subtitle" />
@@ -169,6 +227,42 @@ onMounted(() => store.load())
       message="Заполненные данные будут потеряны"
       confirm-text="Удалить"
       @confirm="confirmRemoveDraft"
+    />
+
+    <!-- Actions for a published listing -->
+    <BottomSheet v-model:open="actionOpen" :title="actionTitle">
+      <div class="space-y-1 pb-2">
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] text-text transition-colors active:bg-surface-2"
+          @click="editListing"
+        >
+          <Pencil :size="20" :stroke-width="1.8" /> Редактировать
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] text-text transition-colors active:bg-surface-2"
+          @click="toggleArchive"
+        >
+          <component :is="isArchived ? ArchiveRestore : Archive" :size="20" :stroke-width="1.8" />
+          {{ isArchived ? 'Вернуть из архива' : 'В архив' }}
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] text-like transition-colors active:bg-surface-2"
+          @click="askDelete"
+        >
+          <Trash2 :size="20" :stroke-width="1.8" /> Удалить
+        </button>
+      </div>
+    </BottomSheet>
+
+    <ConfirmSheet
+      v-model:open="deleteConfirmOpen"
+      title="Удалить объявление?"
+      message="Объявление и его статистика будут удалены безвозвратно"
+      confirm-text="Удалить"
+      @confirm="confirmDelete"
     />
   </main>
 </template>
