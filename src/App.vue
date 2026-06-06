@@ -35,7 +35,7 @@ watch(
   () => route.name,
   (to) => {
     transitionName.value =
-      SEAMLESS.has(to as string) && SEAMLESS.has(prevName as string) ? 'soft' : 'page'
+      SEAMLESS.has(to as string) && SEAMLESS.has(prevName as string) ? 'instant' : 'page'
     prevName = to
   },
 )
@@ -100,20 +100,16 @@ watch(
   opacity: 0;
 }
 
-/* Home ↔ Search: pure opacity crossfade, no translate. The headers are aligned
-   (buttons morph into «Отменить»), so this reads as one continuous screen. */
-.soft-enter-active,
-.soft-leave-active {
-  transition: opacity 0.22s ease;
+/* Home ↔ Search: instant swap, no animation. The aligned search bar stays put, so
+   the screen switches immediately without any perceived transition. */
+.instant-enter-active,
+.instant-leave-active {
+  transition: none;
 }
-.soft-leave-active {
+.instant-leave-active {
   position: absolute;
   inset: 0;
   z-index: 0;
-}
-.soft-enter-from,
-.soft-leave-to {
-  opacity: 0;
 }
 
 /* tab bar slides down out of view when the keyboard opens */
