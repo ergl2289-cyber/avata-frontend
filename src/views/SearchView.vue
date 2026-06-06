@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, Search, X, SlidersHorizontal, ArrowUpDown, Car, ChevronRight } from 'lucide-vue-next'
+import { Search, X, SlidersHorizontal, ArrowUpDown, Car, ChevronRight } from 'lucide-vue-next'
 import SearchResultCard from '@/components/car/SearchResultCard.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import SortSheet from '@/components/car/SortSheet.vue'
@@ -99,6 +99,13 @@ function goBack() {
   else router.push({ name: 'home' })
 }
 
+/** «Отменить» — close the search screen (Avito-style). */
+function cancel() {
+  inputEl.value?.blur()
+  hideSuggestions()
+  goBack()
+}
+
 /**
  * Resolve a free-text query → brand/model filter (the backend feed has no text
  * search, only /api/search model lookup), then show the listings feed directly.
@@ -169,16 +176,7 @@ onMounted(() => {
   <main class="min-h-dvh pb-24">
     <!-- Sticky header: back + search + filters -->
     <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur-xl safe-top">
-      <div class="flex items-center gap-2 px-3 py-3">
-        <button
-          type="button"
-          aria-label="Назад"
-          class="flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-text transition-transform duration-fast ease-out-ios active:scale-90"
-          @click="goBack"
-        >
-          <ChevronLeft :size="24" />
-        </button>
-
+      <div class="flex items-center gap-1 px-3 py-3">
         <div class="relative flex-1">
           <Search :size="20" class="pointer-events-none absolute left-3.5 top-2.5 text-text-muted" />
           <input
@@ -208,22 +206,15 @@ onMounted(() => {
 
         <button
           type="button"
-          aria-label="Фильтры"
-          class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-surface-2 transition-transform duration-fast ease-out-ios active:scale-90"
-          @click="filterOpen = true"
+          class="shrink-0 px-2.5 py-1 text-[15px] text-text transition-opacity duration-fast active:opacity-60"
+          @click="cancel"
         >
-          <SlidersHorizontal :size="20" class="text-text" />
-          <span
-            v-if="filters.activeCount"
-            class="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-text px-1 text-center text-[11px] font-bold leading-[18px] text-bg"
-          >
-            {{ filters.activeCount }}
-          </span>
+          Отменить
         </button>
       </div>
 
-      <!-- Sort row -->
-      <div class="flex items-center px-4 pb-2.5">
+      <!-- Sort + filters row -->
+      <div class="flex items-center justify-between px-4 pb-2.5">
         <button
           type="button"
           class="flex items-center gap-1.5 text-[14px] text-text transition-colors active:text-text-muted"
@@ -231,6 +222,20 @@ onMounted(() => {
         >
           <ArrowUpDown :size="16" :stroke-width="2" />
           {{ sortLabel }}
+        </button>
+        <button
+          type="button"
+          class="relative flex items-center gap-1.5 text-[14px] text-text transition-colors active:text-text-muted"
+          @click="filterOpen = true"
+        >
+          <SlidersHorizontal :size="16" :stroke-width="2" />
+          Фильтры
+          <span
+            v-if="filters.activeCount"
+            class="ml-0.5 min-w-[18px] rounded-full bg-text px-1 text-center text-[11px] font-bold leading-[18px] text-bg"
+          >
+            {{ filters.activeCount }}
+          </span>
         </button>
       </div>
     </header>
