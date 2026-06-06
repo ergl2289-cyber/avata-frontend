@@ -9,6 +9,7 @@ import CarCardSkeleton from '@/components/car/CarCardSkeleton.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import CityPickerSheet from '@/components/geo/CityPickerSheet.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PullToRefresh from '@/components/ui/PullToRefresh.vue'
 import { useCarsStore } from '@/stores/cars'
 import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
@@ -64,6 +65,11 @@ function clearSearch() {
 
 function onFiltersApplied() {
   cars.reload()
+}
+
+/** Pull-to-refresh: silent reload (keeps the list visible while refreshing). */
+async function onRefresh() {
+  await cars.reload(true)
 }
 
 watch(() => profile.city, () => cars.reload(), { deep: true })
@@ -152,7 +158,8 @@ onMounted(() => {
     <CityPickerSheet :open="cityPickerOpen" :selected-id="profile.cityId" @update:open="cityPickerOpen = $event" @select="onCityPicked" />
 
     <!-- Feed (only when city selected or in Telegram) -->
-    <section v-if="!isBrowser || profile.hasCity" class="px-4 pt-1">
+    <PullToRefresh v-if="!isBrowser || profile.hasCity" :on-refresh="onRefresh">
+    <section class="px-4 pt-1">
       <!-- First load skeletons -->
       <div v-if="cars.loading" class="grid grid-cols-2 gap-x-3 gap-y-5">
         <CarCardSkeleton v-for="n in 6" :key="n" />
@@ -184,6 +191,7 @@ onMounted(() => {
         </p>
       </template>
     </section>
+    </PullToRefresh>
 
     <FilterSheet v-model:open="filterOpen" @apply="onFiltersApplied" />
   </main>

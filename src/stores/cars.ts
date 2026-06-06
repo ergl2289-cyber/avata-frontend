@@ -34,9 +34,12 @@ export const useCarsStore = defineStore('cars', () => {
     }
   }
 
-  /** Reset and load the first page (called on mount and when filters change). */
-  async function reload() {
-    loading.value = true
+  /**
+   * Reset and load the first page (called on mount and when filters change).
+   * `silent` keeps the current list visible (no skeleton) — used by pull-to-refresh.
+   */
+  async function reload(silent = false) {
+    if (!silent) loading.value = true
     error.value = null
     offset.value = 0
     cursor.value = null

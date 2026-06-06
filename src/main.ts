@@ -11,6 +11,8 @@ import './style.css'
 try {
   WebApp.ready()
   WebApp.expand()
+  // Disable Telegram's swipe-down-to-minimize so our pull-to-refresh works (Bot API 7.7+).
+  ;(WebApp as unknown as { disableVerticalSwipes?: () => void }).disableVerticalSwipes?.()
 } catch {
   /* running outside Telegram (dev browser) */
 }
