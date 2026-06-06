@@ -4,8 +4,9 @@ import { useTelegram } from '@/composables/useTelegram'
 
 /**
  * Pull-to-refresh wrapper (Avito-style). Wrap a scrollable section; when the page
- * is at the top, a downward drag reveals a spinner and — past the threshold —
- * runs `onRefresh`. Minimal, with progressive resistance and haptic feedback.
+ * is at the top, a downward drag opens a gap, the spinner floats centered in it,
+ * and — past the threshold — `onRefresh` runs. Smooth exponential resistance,
+ * haptic at the threshold, gentle spring-back.
  *
  * NOTE: only wrap content BELOW a sticky header — a CSS transform on a `position:
  * sticky` ancestor breaks the stickiness.
@@ -20,10 +21,13 @@ const props = withDefaults(
 
 const { haptic } = useTelegram()
 
-const THRESHOLD = 64 // px of (resisted) pull needed to trigger
-const MAX = 92 // px the indicator/content can travel
+const THRESHOLD = 70 // resisted px needed to trigger
+const MAX = 130 // max travel of the gap
+const HOLD = 88 // gap height held while refreshing (room around the spinner)
+const SPIN = 26 // spinner box size (px)
+const DAMP = 150 // higher = looser/smoother resistance
 
-const pull = ref(0)
+const offset = ref(0) // current gap height (content translateY)
 const refreshing = ref(false)
 const dragging = ref(false)
 
@@ -32,7 +36,9 @@ let armed = false
 let passed = false
 
 const atTop = () => window.scrollY <= 0
-const progress = computed(() => Math.min(1, pull.value / THRESHOLD))
+const progress = computed(() => Math.min(1, offset.value / THRESHOLD))
+// Keep the spinner centered in the opening gap → equal space above and below it.
+const spinnerY = computed(() => offset.value / 2 - SPIN / 2)
 
 function onStart(e: TouchEvent) {
   if (refreshing.value || props.disabled || e.touches.length !== 1 || !atTop()) {
@@ -51,14 +57,14 @@ function onMove(e: TouchEvent) {
     if (!dragging.value) armed = false
     return
   }
-  // Progressive resistance: easy at first, then stiffer near MAX.
-  pull.value = Math.min(MAX, Math.pow(dy, 0.86) * 0.85)
+  // Exponential resistance: smoothly approaches MAX, never snaps.
+  offset.value = MAX * (1 - Math.exp(-dy / DAMP))
   dragging.value = true
   if (e.cancelable) e.preventDefault()
-  if (!passed && pull.value >= THRESHOLD) {
+  if (!passed && offset.value >= THRESHOLD) {
     passed = true
     haptic('light')
-  } else if (passed && pull.value < THRESHOLD) {
+  } else if (passed && offset.value < THRESHOLD) {
     passed = false
   }
 }
@@ -67,19 +73,21 @@ async function onEnd() {
   if (!armed) return
   armed = false
   dragging.value = false
-  if (pull.value >= THRESHOLD) {
+  if (offset.value >= THRESHOLD) {
     refreshing.value = true
-    pull.value = THRESHOLD
+    offset.value = HOLD
     try {
       await props.onRefresh()
     } finally {
       refreshing.value = false
-      pull.value = 0
+      offset.value = 0
     }
   } else {
-    pull.value = 0
+    offset.value = 0
   }
 }
+
+const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
 </script>
 
 <template>
@@ -90,36 +98,34 @@ async function onEnd() {
     @touchend="onEnd"
     @touchcancel="onEnd"
   >
-    <!-- Indicator -->
+    <!-- Indicator (floats centered in the opening gap) -->
     <div
       class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
       :style="{
-        transform: `translateY(${pull - 30}px)`,
+        transform: `translate3d(0, ${spinnerY}px, 0)`,
         opacity: refreshing ? 1 : progress,
-        transition: dragging
-          ? 'none'
-          : 'transform 0.32s cubic-bezier(0.16,1,0.3,1), opacity 0.2s linear',
+        transition: dragging ? 'none' : `transform 0.4s ${ease}, opacity 0.25s ease`,
       }"
     >
       <span
-        class="block h-6 w-6 rounded-full border-2 border-text-faint border-t-text"
+        class="block rounded-full border-2 border-text-faint border-t-text"
         :class="refreshing ? 'animate-spin' : ''"
-        :style="
-          refreshing
-            ? {}
-            : {
-                transform: `rotate(${pull * 4}deg) scale(${0.6 + 0.4 * progress})`,
-                opacity: 0.35 + 0.65 * progress,
-              }
-        "
+        :style="{
+          width: `${SPIN}px`,
+          height: `${SPIN}px`,
+          transform: refreshing
+            ? 'none'
+            : `rotate(${offset * 3.2}deg) scale(${0.5 + 0.5 * progress})`,
+        }"
       />
     </div>
 
     <!-- Content -->
     <div
       :style="{
-        transform: `translateY(${pull}px)`,
-        transition: dragging ? 'none' : 'transform 0.32s cubic-bezier(0.16,1,0.3,1)',
+        transform: `translate3d(0, ${offset}px, 0)`,
+        transition: dragging ? 'none' : `transform 0.4s ${ease}`,
+        willChange: 'transform',
       }"
     >
       <slot />
