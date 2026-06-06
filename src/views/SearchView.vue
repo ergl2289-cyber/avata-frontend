@@ -166,9 +166,13 @@ function clearText() {
 
 onMounted(() => {
   searchText.value = props.q
-  if (props.q.trim()) runSearch(props.q)
-  else search.reload()
-  ;(document.activeElement as HTMLElement | null)?.blur?.()
+  if (props.q.trim()) {
+    runSearch(props.q)
+  } else {
+    search.reload()
+    // Fresh search (opened from Home) → focus so the keyboard is ready right away.
+    requestAnimationFrame(() => inputEl.value?.focus())
+  }
 })
 </script>
 
