@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onActivated, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, SlidersHorizontal, MapPin, Dices } from 'lucide-vue-next'
 import { getRandomCarId } from '@/api/cars.service'
@@ -30,8 +30,6 @@ const { haptic } = useTelegram()
 const filterOpen = ref(false)
 const cityPickerOpen = ref(false)
 const lucky = ref(false)
-// Entering search: collapse the action buttons + grow the search bar, then navigate.
-const entering = ref(false)
 
 /** "Мне повезёт": open a random listing. */
 async function feelingLucky() {
@@ -55,13 +53,10 @@ const searchPlaceholder = computed(() =>
 
 const { sentinel } = useInfiniteScroll(() => cars.loadMore())
 
-/** Tap the search bar → animate the buttons collapsing, then open search. */
-function enterSearch() {
-  if (entering.value) return
+/** Tap the search bar → open the search screen. */
+function goSearch() {
   haptic('light')
-  entering.value = true
-  // Navigate once the header has morphed into the search layout → seamless swap.
-  setTimeout(() => router.push({ name: 'search' }), 290)
+  router.push({ name: 'search' })
 }
 
 function onFiltersApplied() {
@@ -88,18 +83,13 @@ onMounted(() => {
   }
   cars.reload()
 })
-
-// Returning to Home (kept-alive) → restore the buttons (un-collapse the bar).
-onActivated(() => {
-  entering.value = false
-})
 </script>
 
 <template>
   <main class="min-h-dvh pb-24">
     <!-- Sticky header -->
     <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur-xl safe-top">
-      <div class="flex items-center gap-1 px-3 py-3">
+      <div class="flex items-center gap-2.5 px-3 py-3">
         <div class="relative flex-1">
           <Search :size="20" class="pointer-events-none absolute left-3.5 top-2.5 text-text-muted" />
           <input
@@ -107,58 +97,35 @@ onActivated(() => {
             inputmode="none"
             :placeholder="searchPlaceholder"
             class="w-full cursor-pointer rounded-pill bg-surface-2 py-2.5 pl-11 pr-4 text-[15px] text-text placeholder:text-text-muted outline-none"
-            @click="enterSearch"
-            @focus="enterSearch"
+            @click="goSearch"
+            @focus="goSearch"
           />
         </div>
 
-        <!-- Action buttons collapse smoothly when entering search -->
-        <div
-          class="flex items-center gap-2.5 overflow-hidden"
-          :class="entering ? 'ml-0 max-w-0 opacity-0' : 'ml-1.5 max-w-[112px] opacity-100'"
-          :style="{
-            transition:
-              'max-width 0.26s cubic-bezier(0.16,1,0.3,1), margin 0.26s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease',
-          }"
+        <button
+          type="button"
+          aria-label="Мне повезёт"
+          :disabled="lucky"
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-surface-2 transition-transform duration-fast ease-out-ios active:scale-90 disabled:opacity-50"
+          @click="feelingLucky"
         >
-          <button
-            type="button"
-            aria-label="Мне повезёт"
-            :disabled="lucky"
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-surface-2 transition-transform duration-fast ease-out-ios active:scale-90 disabled:opacity-50"
-            @click="feelingLucky"
-          >
-            <Dices :size="20" :class="lucky ? 'animate-spin text-text-muted' : 'text-text'" />
-          </button>
+          <Dices :size="20" :class="lucky ? 'animate-spin text-text-muted' : 'text-text'" />
+        </button>
 
-          <button
-            type="button"
-            aria-label="Фильтры"
-            class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-surface-2 transition-transform duration-fast ease-out-ios active:scale-90"
-            @click="filterOpen = true"
-          >
-            <SlidersHorizontal :size="20" class="text-text" />
-            <span
-              v-if="filters.activeCount"
-              class="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-text px-1 text-center text-[11px] font-bold leading-[18px] text-bg"
-            >
-              {{ filters.activeCount }}
-            </span>
-          </button>
-        </div>
-
-        <!-- «Отменить» fades in as the buttons collapse → matches the search header -->
-        <span
-          class="pointer-events-none shrink-0 overflow-hidden whitespace-nowrap py-1 text-[15px] text-text"
-          :class="entering ? 'max-w-[100px] px-2.5 opacity-100' : 'max-w-0 px-0 opacity-0'"
-          :style="{
-            transition:
-              'max-width 0.26s cubic-bezier(0.16,1,0.3,1), padding 0.26s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease',
-          }"
-          aria-hidden="true"
+        <button
+          type="button"
+          aria-label="Фильтры"
+          class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-surface-2 transition-transform duration-fast ease-out-ios active:scale-90"
+          @click="filterOpen = true"
         >
-          Отменить
-        </span>
+          <SlidersHorizontal :size="20" class="text-text" />
+          <span
+            v-if="filters.activeCount"
+            class="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-text px-1 text-center text-[11px] font-bold leading-[18px] text-bg"
+          >
+            {{ filters.activeCount }}
+          </span>
+        </button>
       </div>
     </header>
 
