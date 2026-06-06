@@ -298,7 +298,10 @@ export async function getRandomCarId(): Promise<number | null> {
     const list = res.data
     return list.length ? list[Math.floor(Math.random() * list.length)].id : null
   }
-  const res = await backend.getRandomCars(20, Math.floor(Math.random() * 100))
+  // The backend already randomizes (ORDER BY random()), so offset 0 returns a fresh
+  // random set each call. A random offset (0–99) returned empty whenever the region
+  // had few listings → the button did nothing. Pick a random item from page one.
+  const res = await backend.getRandomCars(20, 0)
   const items = res.items
   return items.length ? items[Math.floor(Math.random() * items.length)].id : null
 }
