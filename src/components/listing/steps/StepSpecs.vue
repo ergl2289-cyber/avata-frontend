@@ -75,7 +75,7 @@ const drives: { value: DriveType; label: string }[] = [
 
     <div class="flex gap-3">
       <label class="block flex-1">
-        <span class="mb-1.5 block text-[13px] text-text-muted">Объём двигателя, л</span>
+        <span class="mb-1.5 block text-[13px] text-text-muted">Объём, л</span>
         <input
           v-model.number="form.engineVolume"
           type="number"
@@ -86,14 +86,25 @@ const drives: { value: DriveType; label: string }[] = [
         />
       </label>
       <label class="block flex-1">
-        <span class="mb-1.5 block text-[13px] text-text-muted">Цвет</span>
+        <span class="mb-1.5 block text-[13px] text-text-muted">Мощность, л.с.</span>
         <input
-          v-model.trim="form.color"
-          type="text"
-          placeholder="Чёрный"
+          v-model.number="form.enginePower"
+          type="number"
+          inputmode="numeric"
+          placeholder="150"
           class="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-text placeholder:text-text-faint outline-none"
         />
       </label>
     </div>
+
+    <label class="block">
+      <span class="mb-1.5 block text-[13px] text-text-muted">Цвет</span>
+      <input
+        v-model.trim="form.color"
+        type="text"
+        placeholder="Чёрный"
+        class="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-text placeholder:text-text-faint outline-none"
+      />
+    </label>
   </div>
 </template>

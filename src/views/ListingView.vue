@@ -20,6 +20,8 @@ import {
   transmissionLabel,
 } from '@/utils/format'
 import { useFavoritesStore } from '@/stores/favorites'
+import { useProfileStore } from '@/stores/profile'
+import { useTelegramStore } from '@/stores/telegram'
 import { useTelegram } from '@/composables/useTelegram'
 import type { CarDetail, CarListItem } from '@/types/car'
 
@@ -30,6 +32,8 @@ const similarCache = new Map<number, CarListItem[]>()
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const favorites = useFavoritesStore()
+const profile = useProfileStore()
+const tgStore = useTelegramStore()
 const { haptic, openSellerChat } = useTelegram()
 
 const car = ref<CarDetail | null>(null)
@@ -106,6 +110,14 @@ const sellerInitials = computed(() =>
   (car.value?.seller.first_name?.[0] ?? '?').toUpperCase(),
 )
 const sellerId = computed(() => car.value?.seller.id ?? null)
+// The backend doesn't return seller avatars yet, but for your OWN listing we can
+// show your profile photo (custom upload or Telegram avatar).
+const isMyListing = computed(
+  () => profile.userId != null && car.value?.seller.id === String(profile.userId),
+)
+const sellerAvatar = computed(() =>
+  isMyListing.value ? profile.customPhoto ?? tgStore.user?.photo_url ?? null : null,
+)
 const sellerRating = ref<number | null>(null)
 const sellerReviewCount = ref(0)
 
@@ -414,7 +426,8 @@ onMounted(load)
             class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted cursor-pointer active:scale-95 transition-transform duration-fast"
             @click="openSeller"
           >
-            {{ sellerInitials }}
+            <img v-if="sellerAvatar" :src="sellerAvatar" alt="" class="h-full w-full object-cover" />
+            <template v-else>{{ sellerInitials }}</template>
           </div>
           <div class="min-w-0 flex-1 cursor-pointer" @click="openSeller">
             <p class="truncate text-[15px] font-semibold text-text">{{ sellerName }}</p>

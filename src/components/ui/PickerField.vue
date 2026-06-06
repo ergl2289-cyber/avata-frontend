@@ -11,6 +11,8 @@ defineProps<{
   placeholder?: string
   value?: string | null
   disabled?: boolean
+  /** Field background — `surface` (default, on dark pages) or `surface-2` (inside sheets). */
+  bg?: 'surface' | 'surface-2'
 }>()
 const emit = defineEmits<{ open: [] }>()
 </script>
@@ -21,7 +23,8 @@ const emit = defineEmits<{ open: [] }>()
     <button
       type="button"
       :disabled="disabled"
-      class="relative flex w-full items-center justify-between gap-3 rounded-xl bg-surface px-4 py-3.5 text-left text-[15px] outline-none transition-transform duration-fast ease-out-ios active:scale-[0.99] disabled:opacity-40"
+      class="relative flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-[15px] outline-none transition-transform duration-fast ease-out-ios active:scale-[0.99] disabled:opacity-40"
+      :class="bg === 'surface-2' ? 'bg-surface-2' : 'bg-surface'"
       @click="emit('open')"
     >
       <span class="truncate" :class="value ? 'text-text' : 'text-text-muted'">

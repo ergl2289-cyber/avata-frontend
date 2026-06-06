@@ -16,6 +16,7 @@ export interface ListingForm {
   fuelType: FuelType | null
   driveType: DriveType | null
   engineVolume: number | null
+  enginePower: number | null // hp (л.с.)
   color: string | null
   price: number | null
   cityId: number | null
@@ -44,6 +45,7 @@ export function emptyListingForm(): ListingForm {
     fuelType: null,
     driveType: null,
     engineVolume: null,
+    enginePower: null,
     color: null,
     price: null,
     cityId: null,

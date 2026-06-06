@@ -9,12 +9,21 @@ import { assetUrl } from '@/api/assets'
 import logoUrl from '@/assets/logo-avata.webp'
 import { useTelegram } from '@/composables/useTelegram'
 import { useTelegramStore } from '@/stores/telegram'
+import { useProfileStore } from '@/stores/profile'
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()
 const router = useRouter()
 const { haptic } = useTelegram()
 const tg = useTelegramStore()
+const profile = useProfileStore()
+
+// Own seller profile → show your avatar (backend has no seller avatars yet).
+const sellerAvatar = computed(() =>
+  profile.userId != null && Number(props.id) === profile.userId
+    ? profile.customPhoto ?? tg.user?.photo_url ?? null
+    : null,
+)
 
 const tab = ref<'listings' | 'reviews'>('listings')
 const loading = ref(true)
@@ -185,9 +194,10 @@ async function loadReviews() {
         </button>
         <div
           v-if="!loading"
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted"
+          class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted"
         >
-          {{ sellerInitial }}
+          <img v-if="sellerAvatar" :src="sellerAvatar" alt="" class="h-full w-full object-cover" />
+          <template v-else>{{ sellerInitial }}</template>
         </div>
         <div v-if="!loading" class="min-w-0 flex-1">
           <h1 class="truncate text-[17px] font-semibold text-text">{{ sellerName || 'Продавец' }}</h1>

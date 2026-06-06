@@ -2,6 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
+import PickerField from '@/components/ui/PickerField.vue'
+import OptionPickerSheet from '@/components/ui/OptionPickerSheet.vue'
 import { getBrands, getModels } from '@/api/catalog.service'
 import { getCities } from '@/api/geo.service'
 import { useFiltersStore } from '@/stores/filters'
@@ -17,6 +19,26 @@ const { haptic } = useTelegram()
 const brands = ref<CarBrand[]>([])
 const models = ref<CarModel[]>([])
 const cities = ref<City[]>([])
+
+const brandOpen = ref(false)
+const modelOpen = ref(false)
+
+// "Любая" sentinel (id 0) so the searchable picker can also clear the filter.
+const ANY = { id: 0, name: 'Любая' }
+const brandOptions = computed(() => [ANY, ...brands.value])
+const modelOptions = computed(() => [ANY, ...models.value])
+const brandName = computed(() => brands.value.find((b) => b.id === draft.brandId)?.name ?? null)
+const modelName = computed(() => models.value.find((m) => m.id === draft.modelId)?.name ?? null)
+
+function pickBrand(o: { id: number }) {
+  draft.brandId = o.id === 0 ? null : o.id
+}
+function pickModel(o: { id: number }) {
+  draft.modelId = o.id === 0 ? null : o.id
+}
+function openModel() {
+  if (draft.brandId) modelOpen.value = true
+}
 
 // local draft so changes only commit on "Показать"
 const draft = reactive({
@@ -112,36 +134,24 @@ function onApply() {
 <template>
   <BottomSheet :open="open" title="Фильтры" @update:open="emit('update:open', $event)">
     <div class="space-y-4 pb-2">
-      <!-- Brand -->
-      <label class="block">
-        <span class="mb-1.5 block text-[13px] text-text-muted">Марка</span>
-        <div class="relative">
-          <select
-            v-model.number="draft.brandId"
-            class="w-full appearance-none rounded-xl bg-surface-2 px-4 py-3 text-[15px] text-text outline-none"
-          >
-            <option :value="null">Любая</option>
-            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
-          </select>
-          <ChevronDown :size="18" class="pointer-events-none absolute right-3 top-3.5 text-text-muted" />
-        </div>
-      </label>
+      <!-- Brand (searchable picker) -->
+      <PickerField
+        label="Марка"
+        placeholder="Любая"
+        :value="brandName"
+        bg="surface-2"
+        @open="brandOpen = true"
+      />
 
-      <!-- Model -->
-      <label class="block">
-        <span class="mb-1.5 block text-[13px] text-text-muted">Модель</span>
-        <div class="relative">
-          <select
-            v-model.number="draft.modelId"
-            :disabled="!draft.brandId"
-            class="w-full appearance-none rounded-xl bg-surface-2 px-4 py-3 text-[15px] text-text outline-none disabled:opacity-40"
-          >
-            <option :value="null">Любая</option>
-            <option v-for="m in models" :key="m.id" :value="m.id">{{ m.name }}</option>
-          </select>
-          <ChevronDown :size="18" class="pointer-events-none absolute right-3 top-3.5 text-text-muted" />
-        </div>
-      </label>
+      <!-- Model (searchable picker) -->
+      <PickerField
+        label="Модель"
+        placeholder="Любая"
+        :value="modelName"
+        :disabled="!draft.brandId"
+        bg="surface-2"
+        @open="openModel"
+      />
 
       <!-- Year range -->
       <div>
@@ -215,6 +225,22 @@ function onApply() {
         Сбросить фильтры
       </button>
     </div>
+
+    <!-- Searchable brand/model pickers (teleported above this sheet) -->
+    <OptionPickerSheet
+      v-model:open="brandOpen"
+      title="Марка"
+      :options="brandOptions"
+      :selected-id="draft.brandId ?? 0"
+      @select="pickBrand"
+    />
+    <OptionPickerSheet
+      v-model:open="modelOpen"
+      title="Модель"
+      :options="modelOptions"
+      :selected-id="draft.modelId ?? 0"
+      @select="pickModel"
+    />
 
     <template #footer>
       <button
