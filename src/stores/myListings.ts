@@ -106,7 +106,7 @@ export const useMyListingsStore = defineStore('myListings', () => {
    * Publish a new listing. Real mode: POST /api/cars (+ photo upload) → reload.
    * Mock mode: persist a pending listing into the in-memory mock DB.
    */
-  async function publish(form: ListingForm, draftId?: string) {
+  async function publish(form: ListingForm, draftId?: string): Promise<number> {
     if (!USE_MOCKS) {
       const { car_id } = await backend.createCar(formToCreateData(form))
       // Photos are non-critical: the listing is already created (pending). A photo
@@ -118,12 +118,13 @@ export const useMyListingsStore = defineStore('myListings', () => {
       }
       if (draftId) deleteDraft(draftId)
       await load()
-      return
+      return car_id
     }
     if (draftId) deleteDraft(draftId)
     const detail = formToDetail(form)
     upsertMyCar(detail)
     published.value.unshift(toMyListItem(detail))
+    return detail.id
   }
 
   /**

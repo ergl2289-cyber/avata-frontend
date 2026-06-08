@@ -446,9 +446,27 @@ export interface OrderResult {
   status: string
 }
 
-/** Boost tariffs (99₽/3д … 599₽/30д). */
-export function getBoostProducts(): Promise<BoostProduct[]> {
-  return request<BoostProduct[]>('/api/products', { params: { type: 'boost' } })
+/**
+ * Built-in boost tariff. The backend exposes order creation by `variant_id`
+ * (POST /api/orders) but, as of now, has NO endpoint to *list* tariffs
+ * (`GET /api/products` is in the docs but not deployed). The actual charge is
+ * taken from `product_variants` in the DB by id — so this list must mirror the
+ * DB row (variant id=1: «На 3 дня», 980 ₽ / 500 ★). When the backend ships
+ * GET /api/products, getBoostProducts() will transparently switch to it.
+ */
+export const BOOST_TARIFFS: BoostProduct[] = [
+  { id: 1, name: 'На 3 дня', duration_hours: 72, price_rub: 980, price_stars: 500 },
+]
+
+/** Boost tariffs. Tries the (future) backend endpoint, falls back to built-in. */
+export async function getBoostProducts(): Promise<BoostProduct[]> {
+  try {
+    const list = await request<BoostProduct[]>('/api/products', { params: { type: 'boost' } })
+    if (Array.isArray(list) && list.length) return list
+  } catch {
+    /* endpoint not deployed yet — use the built-in tariff below */
+  }
+  return BOOST_TARIFFS
 }
 
 /** Create a boost order for a listing → returns order id + amount. */

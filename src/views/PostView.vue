@@ -8,6 +8,7 @@ import StepSpecs from '@/components/listing/steps/StepSpecs.vue'
 import StepPrice from '@/components/listing/steps/StepPrice.vue'
 import StepCity from '@/components/listing/steps/StepCity.vue'
 import StepDescription from '@/components/listing/steps/StepDescription.vue'
+import BoostSheet from '@/components/car/BoostSheet.vue'
 import { emptyListingForm, type ListingForm } from '@/types/listing'
 import { useMyListingsStore, detailToForm } from '@/stores/myListings'
 import { getCarById } from '@/api/cars.service'
@@ -48,6 +49,10 @@ const step = ref(0)
 const direction = ref<'fwd' | 'back'>('fwd')
 const submitting = ref(false)
 const errorMsg = ref('')
+
+// Post-publish boost upsell
+const boostOpen = ref(false)
+const newCarId = ref<number | null>(null)
 
 const steps = [
   { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => true },
@@ -161,14 +166,23 @@ async function publish() {
   submitting.value = true
   errorMsg.value = ''
   try {
-    await store.publish(form, currentDraftId.value ?? undefined)
+    newCarId.value = await store.publish(form, currentDraftId.value ?? undefined)
     notify('success')
-    router.push({ name: 'listings', query: { tab: 'moderation' } })
+    // Marketing upsell: offer to boost the freshly created listing before leaving.
+    // Closing the sheet (pay / skip / swipe) navigates to «Модерация».
+    submitting.value = false
+    boostOpen.value = true
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Не удалось опубликовать объявление'
     notify('error')
     submitting.value = false
   }
+}
+
+/** Any close of the post-publish boost sheet → go to «Мои объявления · Модерация». */
+function onBoostSheetClose(open: boolean) {
+  boostOpen.value = open
+  if (!open) router.push({ name: 'listings', query: { tab: 'moderation' } })
 }
 
 /** Save edits to an existing listing → back to moderation. */
@@ -221,6 +235,16 @@ async function saveListing() {
     >
       {{ errorMsg }}
     </div>
+
+    <!-- Post-publish boost upsell -->
+    <BoostSheet
+      :open="boostOpen"
+      :car-id="newCarId"
+      title="Объявление отправлено!"
+      subtitle="Поднимите его в топ — после одобрения оно будет первым в ленте и поиске"
+      skippable
+      @update:open="onBoostSheetClose"
+    />
   </div>
 </template>
 

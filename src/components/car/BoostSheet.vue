@@ -10,10 +10,28 @@ import BottomSheet from '@/components/ui/BottomSheet.vue'
 import { backend } from '@/api/cars.service'
 import { useTelegram } from '@/composables/useTelegram'
 
-const props = defineProps<{ open: boolean; carId: number | null }>()
-const emit = defineEmits<{ 'update:open': [v: boolean]; boosted: [] }>()
+const props = withDefaults(
+  defineProps<{
+    open: boolean
+    carId: number | null
+    /** Sheet title (default «Поднять объявление»). */
+    title?: string
+    /** Intro line under the title. */
+    subtitle?: string
+    /** Show a «Может быть позже» skip button (post-publish offer). */
+    skippable?: boolean
+  }>(),
+  { title: 'Поднять объявление', subtitle: 'Объявление будет показываться первым в ленте и поиске', skippable: false },
+)
+const emit = defineEmits<{ 'update:open': [v: boolean]; boosted: []; skip: [] }>()
 
 const { haptic, notify } = useTelegram()
+
+function skip() {
+  haptic('light')
+  emit('skip')
+  emit('update:open', false)
+}
 
 const plans = ref<backend.BoostProduct[]>([])
 const loading = ref(false)
@@ -71,9 +89,9 @@ async function choose(plan: backend.BoostProduct) {
 </script>
 
 <template>
-  <BottomSheet :open="open" title="Поднять объявление" @update:open="emit('update:open', $event)">
+  <BottomSheet :open="open" :title="title" @update:open="emit('update:open', $event)">
     <p class="-mt-1 mb-3 text-center text-[13px] leading-snug text-text-muted">
-      Объявление будет показываться первым в ленте и поиске
+      {{ subtitle }}
     </p>
 
     <div v-if="loading" class="space-y-2.5 pb-2">
@@ -106,6 +124,16 @@ async function choose(plan: backend.BoostProduct) {
         </span>
       </button>
       <p v-if="error" class="pt-1 text-center text-[13px] text-like">{{ error }}</p>
+
+      <button
+        v-if="skippable"
+        type="button"
+        :disabled="paying != null"
+        class="mt-1 w-full py-2.5 text-center text-[14px] font-medium text-text-muted transition-colors active:text-text disabled:opacity-50"
+        @click="skip"
+      >
+        Может быть позже
+      </button>
     </div>
   </BottomSheet>
 </template>

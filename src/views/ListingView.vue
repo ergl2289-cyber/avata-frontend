@@ -2,12 +2,13 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { ChevronLeft, MessageCircle, Share2, Eye, Heart, Star } from 'lucide-vue-next'
+import { ChevronLeft, MessageCircle, Share2, Eye, Heart, Star, Rocket, Pencil } from 'lucide-vue-next'
 import logoUrl from '@/assets/logo-avata.webp'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
 import CarCard from '@/components/car/CarCard.vue'
 import BoostBadge from '@/components/car/BoostBadge.vue'
+import BoostSheet from '@/components/car/BoostSheet.vue'
 import { getCarById, getSimilarCars, recordCarView, backend } from '@/api/cars.service'
 import { getCachedCar, setCachedCar } from '@/api/cars.cache'
 import { galleryUrls } from '@/api/assets'
@@ -150,6 +151,27 @@ function write() {
   if (!s) return
   haptic('medium')
   openSellerChat(s.username, s.tg_id)
+}
+
+/* ---- Owner actions: boost / edit ---- */
+const boostOpen = ref(false)
+const isBoosted = computed(() => {
+  const c = car.value
+  if (!c?.is_boosted) return false
+  return !c.boosted_until || new Date(c.boosted_until).getTime() > Date.now()
+})
+function openBoost() {
+  haptic('light')
+  boostOpen.value = true
+}
+function onBoosted() {
+  // Optimistic: mark as boosted; exact boosted_until refreshes on next open.
+  if (car.value) car.value.is_boosted = true
+}
+function editOwnListing() {
+  if (!car.value) return
+  haptic('light')
+  router.push({ name: 'post', query: { car: car.value.id } })
 }
 
 function goBack() {
@@ -420,7 +442,33 @@ onMounted(load)
       <div
         class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur-xl"
       >
+        <!-- Owner: boost + edit. Visitor: seller info + write. -->
         <div
+          v-if="isMyListing"
+          class="flex items-center gap-3 px-4 pt-3"
+          style="padding-bottom: calc(12px + var(--safe-bottom))"
+        >
+          <button
+            type="button"
+            aria-label="Редактировать"
+            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-surface-2 text-text transition-transform duration-fast ease-out-ios active:scale-95"
+            @click="editOwnListing"
+          >
+            <Pencil :size="19" :stroke-width="2" />
+          </button>
+          <button
+            type="button"
+            class="flex flex-1 items-center justify-center gap-2 rounded-pill px-5 py-3 text-[15px] font-semibold transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+            :class="isBoosted ? 'bg-surface-2 text-text' : 'bg-text text-bg'"
+            @click="openBoost"
+          >
+            <Rocket :size="18" :stroke-width="2.2" />
+            {{ isBoosted ? 'Продлить в топе' : 'Поднять в топ' }}
+          </button>
+        </div>
+
+        <div
+          v-else
           class="flex items-center gap-3 px-4 pt-3"
           style="padding-bottom: calc(12px + var(--safe-bottom))"
         >
@@ -463,6 +511,8 @@ onMounted(load)
         {{ toastText }}
       </div>
     </transition>
+
+    <BoostSheet v-model:open="boostOpen" :car-id="car ? car.id : null" @boosted="onBoosted" />
   </main>
 </template>
 
