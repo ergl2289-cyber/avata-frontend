@@ -181,36 +181,63 @@ async function loadReviews() {
 </script>
 
 <template>
-  <main class="min-h-dvh bg-bg">
-    <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur-xl safe-top">
-      <div class="flex items-center gap-3 px-3 py-3">
-        <button
-          type="button"
-          aria-label="Назад"
-          class="flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-text transition-transform duration-fast ease-out-ios active:scale-90"
-          @click="goBack"
-        >
-          <ChevronLeft :size="24" />
-        </button>
-        <div
-          v-if="!loading"
-          class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[16px] font-semibold text-text-muted"
-        >
-          <img v-if="sellerAvatar" :src="sellerAvatar" alt="" class="h-full w-full object-cover" />
-          <template v-else>{{ sellerInitial }}</template>
-        </div>
-        <div v-if="!loading" class="min-w-0 flex-1">
-          <h1 class="truncate text-[17px] font-semibold text-text">{{ sellerName || 'Продавец' }}</h1>
-          <p class="text-[12px] text-text-muted">
-            <template v-if="sellerRating != null">
-              <Star :size="12" class="mb-px inline text-yellow-400" fill="currentColor" />
-              {{ sellerRating.toFixed(1) }} · {{ reviewCount }} {{ reviewCount === 1 ? 'отзыв' : reviewCount < 5 ? 'отзыва' : 'отзывов' }}
-            </template>
-            <template v-else>Нет отзывов</template>
-          </p>
-        </div>
+  <main class="relative min-h-dvh bg-bg">
+    <!-- Floating back button over the hero -->
+    <button
+      type="button"
+      aria-label="Назад"
+      class="absolute left-1.5 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-surface/70 text-text backdrop-blur-md transition-transform duration-fast ease-out-ios active:scale-90"
+      style="top: calc(8px + var(--safe-top))"
+      @click="goBack"
+    >
+      <ChevronLeft :size="24" />
+    </button>
+
+    <!-- Hero: big avatar + name + stats (centered composition) -->
+    <section
+      class="flex flex-col items-center px-6 pb-6 text-center"
+      style="padding-top: calc(28px + var(--safe-top))"
+    >
+      <div
+        class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[34px] font-semibold text-text-muted ring-1 ring-border"
+      >
+        <img v-if="sellerAvatar" :src="sellerAvatar" alt="" class="h-full w-full object-cover" />
+        <template v-else>{{ sellerInitial }}</template>
       </div>
 
+      <h1 class="mt-4 text-[24px] font-bold leading-tight text-text">
+        {{ sellerName || 'Продавец' }}
+      </h1>
+      <p class="mt-1 text-[14px] text-text-muted">
+        <template v-if="sellerRating != null">
+          <Star :size="13" class="mb-px inline text-yellow-400" fill="currentColor" />
+          {{ sellerRating.toFixed(1) }} · {{ reviewCount }} {{ reviewCount === 1 ? 'отзыв' : reviewCount < 5 ? 'отзыва' : 'отзывов' }}
+        </template>
+        <template v-else>Нет отзывов</template>
+      </p>
+
+      <!-- Stats: 3-column composition -->
+      <div class="mt-6 grid w-full max-w-[330px] grid-cols-3 overflow-hidden rounded-card bg-surface">
+        <div class="flex flex-col items-center gap-1 py-4">
+          <span class="text-[21px] font-bold leading-none text-text">{{ listings.length }}</span>
+          <span class="text-[12px] text-text-muted">Объявления</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 border-x border-border py-4">
+          <span class="text-[21px] font-bold leading-none text-text">{{ reviewCount }}</span>
+          <span class="text-[12px] text-text-muted">Отзывы</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 py-4">
+          <span class="flex items-center gap-1 text-[21px] font-bold leading-none text-text">
+            <Star :size="15" class="text-yellow-400" fill="currentColor" />
+            {{ sellerRating != null ? sellerRating.toFixed(1) : '—' }}
+          </span>
+          <span class="text-[12px] text-text-muted">Рейтинг</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sticky tabs -->
+    <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur-xl">
       <nav class="flex gap-5 px-4">
         <button
           v-for="t in ([
@@ -219,7 +246,7 @@ async function loadReviews() {
           ])"
           :key="t.key"
           type="button"
-          class="relative -mb-px pb-2.5 pt-1 text-[16px] font-semibold transition-colors duration-fast"
+          class="relative -mb-px pb-2.5 pt-2.5 text-[16px] font-semibold transition-colors duration-fast"
           :class="tab === t.key ? 'text-text' : 'text-text-muted'"
           @click="switchTab(t.key)"
         >
