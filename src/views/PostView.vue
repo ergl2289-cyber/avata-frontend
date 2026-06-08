@@ -8,10 +8,12 @@ import StepSpecs from '@/components/listing/steps/StepSpecs.vue'
 import StepPrice from '@/components/listing/steps/StepPrice.vue'
 import StepCity from '@/components/listing/steps/StepCity.vue'
 import StepDescription from '@/components/listing/steps/StepDescription.vue'
-import BoostSheet from '@/components/car/BoostSheet.vue'
+import StepBoost from '@/components/listing/steps/StepBoost.vue'
+import WebApp from '@twa-dev/sdk'
 import { emptyListingForm, type ListingForm } from '@/types/listing'
 import { useMyListingsStore, detailToForm } from '@/stores/myListings'
-import { getCarById } from '@/api/cars.service'
+import { getCarById, backend } from '@/api/cars.service'
+import { BOOST_TARIFFS } from '@/api/backend'
 import { useTelegram } from '@/composables/useTelegram'
 import type { CarDetail } from '@/types/car'
 
@@ -50,21 +52,24 @@ const direction = ref<'fwd' | 'back'>('fwd')
 const submitting = ref(false)
 const errorMsg = ref('')
 
-// Post-publish boost upsell
-const boostOpen = ref(false)
-const newCarId = ref<number | null>(null)
+const steps = computed(() => {
+  const base = [
+    { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => true },
+    { component: markRaw(StepBrandModel), title: 'Марка и модель', subtitle: 'Выберите марку и модель', valid: () => form.brandId != null && form.modelId != null },
+    { component: markRaw(StepSpecs), title: 'Характеристики', subtitle: 'Год и пробег обязательны', valid: () => !!form.year && form.mileage != null },
+    { component: markRaw(StepPrice), title: 'Укажите цену', subtitle: '', valid: () => form.price != null && form.price > 0 },
+    { component: markRaw(StepCity), title: 'Город', subtitle: 'Где находится автомобиль', valid: () => form.cityId != null },
+    { component: markRaw(StepDescription), title: 'Описание', subtitle: 'Необязательно, но помогает продать', valid: () => true },
+  ]
+  // Promotion upsell is offered only for new listings (not when editing).
+  if (!isEdit.value) {
+    base.push({ component: markRaw(StepBoost), title: 'Продвижение', subtitle: 'Опционально — поможет продать быстрее', valid: () => true })
+  }
+  return base
+})
 
-const steps = [
-  { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => true },
-  { component: markRaw(StepBrandModel), title: 'Марка и модель', subtitle: 'Выберите марку и модель', valid: () => form.brandId != null && form.modelId != null },
-  { component: markRaw(StepSpecs), title: 'Характеристики', subtitle: 'Год и пробег обязательны', valid: () => !!form.year && form.mileage != null },
-  { component: markRaw(StepPrice), title: 'Укажите цену', subtitle: '', valid: () => form.price != null && form.price > 0 },
-  { component: markRaw(StepCity), title: 'Город', subtitle: 'Где находится автомобиль', valid: () => form.cityId != null },
-  { component: markRaw(StepDescription), title: 'Описание', subtitle: 'Необязательно, но помогает продать', valid: () => true },
-]
-
-const current = computed(() => steps[step.value])
-const isLast = computed(() => step.value === steps.length - 1)
+const current = computed(() => steps.value[step.value])
+const isLast = computed(() => step.value === steps.value.length - 1)
 const canContinue = computed(() => current.value.valid())
 const continueLabel = computed(() =>
   submitting.value
@@ -153,7 +158,7 @@ function next() {
 
 /** Jump to the first invalid step; returns false if the form isn't complete. */
 function ensureValid(): boolean {
-  const firstInvalid = steps.findIndex((s) => !s.valid())
+  const firstInvalid = steps.value.findIndex((s) => !s.valid())
   if (firstInvalid === -1) return true
   direction.value = firstInvalid < step.value ? 'back' : 'fwd'
   step.value = firstInvalid
@@ -161,17 +166,22 @@ function ensureValid(): boolean {
   return false
 }
 
+function goToListings() {
+  router.push({ name: 'listings', query: { tab: 'moderation' } })
+}
+
 async function publish() {
   if (submitting.value || !ensureValid()) return
   submitting.value = true
   errorMsg.value = ''
   try {
-    newCarId.value = await store.publish(form, currentDraftId.value ?? undefined)
+    const carId = await store.publish(form, currentDraftId.value ?? undefined)
     notify('success')
-    // Marketing upsell: offer to boost the freshly created listing before leaving.
-    // Closing the sheet (pay / skip / swipe) navigates to «Модерация».
-    submitting.value = false
-    boostOpen.value = true
+    if (form.boost) {
+      await payForBoost(carId) // opens the Telegram Stars invoice, then navigates
+    } else {
+      goToListings()
+    }
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Не удалось опубликовать объявление'
     notify('error')
@@ -179,10 +189,25 @@ async function publish() {
   }
 }
 
-/** Any close of the post-publish boost sheet → go to «Мои объявления · Модерация». */
-function onBoostSheetClose(open: boolean) {
-  boostOpen.value = open
-  if (!open) router.push({ name: 'listings', query: { tab: 'moderation' } })
+/**
+ * Listing is already published — start the Stars payment. Whatever happens
+ * (paid / cancelled / error) we still send the user to «Модерация»: the listing
+ * exists and the boost can be paid later from «Мои объявления».
+ */
+async function payForBoost(carId: number) {
+  try {
+    const order = await backend.createBoostOrder(carId, BOOST_TARIFFS[0].id)
+    const { invoice_url } = await backend.getStarsInvoice(order.order_id)
+    if (typeof WebApp.openInvoice === 'function') {
+      WebApp.openInvoice(invoice_url, () => goToListings())
+    } else {
+      goToListings()
+    }
+  } catch {
+    errorMsg.value =
+      'Объявление опубликовано. Оплату продвижения не удалось начать — можно поднять позже в «Мои объявления».'
+    setTimeout(goToListings, 2000)
+  }
 }
 
 /** Save edits to an existing listing → back to moderation. */
@@ -235,16 +260,6 @@ async function saveListing() {
     >
       {{ errorMsg }}
     </div>
-
-    <!-- Post-publish boost upsell -->
-    <BoostSheet
-      :open="boostOpen"
-      :car-id="newCarId"
-      title="Объявление отправлено!"
-      subtitle="Поднимите его в топ — после одобрения оно будет первым в ленте и поиске"
-      skippable
-      @update:open="onBoostSheetClose"
-    />
   </div>
 </template>
 

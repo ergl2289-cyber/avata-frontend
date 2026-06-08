@@ -21,6 +21,8 @@ export interface ListingForm {
   price: number | null
   cityId: number | null
   description: string
+  /** Опт-ин на платное продвижение (выбирается на шаге «Продвижение»). */
+  boost: boolean
 }
 
 /** A saved draft (Архив). Persisted in localStorage until published or deleted. */
@@ -50,5 +52,6 @@ export function emptyListingForm(): ListingForm {
     price: null,
     cityId: null,
     description: '',
+    boost: false,
   }
 }
