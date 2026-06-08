@@ -63,7 +63,7 @@ const steps = computed(() => {
   ]
   // Promotion upsell is offered only for new listings (not when editing).
   if (!isEdit.value) {
-    base.push({ component: markRaw(StepBoost), title: 'Продвижение', subtitle: 'Опционально — поможет продать быстрее', valid: () => true })
+    base.push({ component: markRaw(StepBoost), title: 'Продайте быстрее', subtitle: 'Поднимите объявление в топ — его увидят в числе первых', valid: () => true })
   }
   return base
 })
