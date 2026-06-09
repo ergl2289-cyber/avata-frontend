@@ -24,6 +24,9 @@ const sellerAvatar = computed(() =>
     ? profile.customPhoto ?? tg.user?.photo_url ?? null
     : null,
 )
+// If the avatar URL fails to load (e.g. an expired Telegram photo link), fall
+// back to the initial instead of showing an empty circle.
+const avatarBroken = ref(false)
 
 const tab = ref<'listings' | 'reviews'>('listings')
 const loading = ref(true)
@@ -201,7 +204,13 @@ async function loadReviews() {
       <div
         class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-[34px] font-semibold text-text-muted ring-1 ring-border"
       >
-        <img v-if="sellerAvatar" :src="sellerAvatar" alt="" class="h-full w-full object-cover" />
+        <img
+          v-if="sellerAvatar && !avatarBroken"
+          :src="sellerAvatar"
+          alt=""
+          class="h-full w-full object-cover"
+          @error="avatarBroken = true"
+        />
         <template v-else>{{ sellerInitial }}</template>
       </div>
 
@@ -258,7 +267,7 @@ async function loadReviews() {
       <div class="h-px w-full bg-border" />
     </header>
 
-    <section class="px-4 pt-4">
+    <section class="px-4 pt-4" style="padding-bottom: calc(32px + var(--safe-bottom))">
       <div v-if="loading" class="flex justify-center py-12">
         <span class="h-6 w-6 animate-spin rounded-full border-2 border-text-faint border-t-text" />
       </div>
