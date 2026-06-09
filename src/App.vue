@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TabBar from '@/components/layout/TabBar.vue'
 import LoginView from '@/views/LoginView.vue'
+import NotifyOptIn from '@/components/notify/NotifyOptIn.vue'
 import { useKeyboardOpen } from '@/composables/useKeyboardOpen'
 import { useTelegramStore } from '@/stores/telegram'
 import { useProfileStore } from '@/stores/profile'
@@ -75,6 +76,7 @@ watch(
       <transition name="tabbar">
         <TabBar v-if="showTabBar" />
       </transition>
+      <NotifyOptIn />
     </template>
   </div>
 </template>
