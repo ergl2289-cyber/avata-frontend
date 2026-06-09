@@ -36,6 +36,8 @@ function onScroll() {
         :src="url"
         :alt="alt"
         :draggable="false"
+        :loading="i === 0 ? 'eager' : 'lazy'"
+        decoding="async"
         class="h-full w-full shrink-0 snap-center object-cover"
       />
     </div>

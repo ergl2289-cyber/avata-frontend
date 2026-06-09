@@ -38,6 +38,7 @@ function open() {
           :src="cover"
           :alt="title"
           loading="lazy"
+          decoding="async"
           class="h-full w-full object-cover"
         />
         <div v-else class="flex h-full w-full items-center justify-center text-text-faint">

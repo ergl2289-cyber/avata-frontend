@@ -66,7 +66,7 @@ const descExpanded = ref(false)
 const descEl = ref<HTMLElement | null>(null)
 const descOverflows = ref(false)
 
-const photos = computed(() => (car.value ? galleryUrls(car.value.files) : []))
+const photos = computed(() => (car.value ? galleryUrls(car.value.files, 1280) : []))
 const title = computed(() => (car.value ? carTitle(car.value) : ''))
 const price = computed(() => (car.value ? formatPrice(car.value.price) : ''))
 const subtitle = computed(() =>
