@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TrendingUp, Eye, Zap, Check } from 'lucide-vue-next'
+import TgStar from '@/components/ui/TgStar.vue'
 import type { ListingForm } from '@/types/listing'
 import { BOOST_TARIFFS } from '@/api/backend'
 import { useTelegram } from '@/composables/useTelegram'
@@ -67,7 +68,9 @@ function choose(value: boolean) {
           <span class="mt-0.5 block text-[13px] text-text-muted">{{ days }} дня в топе</span>
         </span>
         <span class="shrink-0 text-right">
-          <span class="block text-[16px] font-bold text-text">{{ tariff.price_stars }} ★</span>
+          <span class="flex items-center justify-end gap-1 text-[16px] font-bold text-text">
+            {{ tariff.price_stars }} <TgStar :size="15" />
+          </span>
           <span class="block text-[12px] text-text-faint">{{ tariff.price_rub }} ₽</span>
         </span>
       </button>

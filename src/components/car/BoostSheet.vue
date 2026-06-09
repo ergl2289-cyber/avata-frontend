@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * «Поднять объявление» — pick a boost tariff and pay with Telegram Stars.
- * Flow: getBoostProducts → createBoostOrder → getStarsInvoice → WebApp.openInvoice.
+ * «Поднять в топ» — pick a boost tariff, create an order, go to /pay/:orderId.
  */
 import { computed, ref, watch } from 'vue'
-import WebApp from '@twa-dev/sdk'
+import { useRouter } from 'vue-router'
 import { Rocket, TrendingUp, Eye, Zap, Check } from 'lucide-vue-next'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
+import TgStar from '@/components/ui/TgStar.vue'
 import { backend } from '@/api/cars.service'
 import { useTelegram } from '@/composables/useTelegram'
 
@@ -16,22 +16,20 @@ const props = withDefaults(
     carId: number | null
     title?: string
     subtitle?: string
-    /** Show a «Может быть позже» skip button (post-publish offer). */
-    skippable?: boolean
   }>(),
   {
     title: 'Поднять в топ',
     subtitle: 'Объявление будет одним из первых в ленте и поиске',
-    skippable: false,
   },
 )
-const emit = defineEmits<{ 'update:open': [v: boolean]; boosted: []; skip: [] }>()
+const emit = defineEmits<{ 'update:open': [v: boolean] }>()
 
-const { haptic, notify, selection } = useTelegram()
+const router = useRouter()
+const { haptic, selection } = useTelegram()
 
 const plans = ref<backend.BoostProduct[]>([])
 const loading = ref(false)
-const paying = ref(false)
+const creating = ref(false)
 const error = ref('')
 const selectedId = ref<number | null>(null)
 
@@ -73,42 +71,20 @@ function pick(id: number) {
   selectedId.value = id
 }
 
-function skip() {
-  haptic('light')
-  emit('skip')
-  emit('update:open', false)
-}
-
-async function pay() {
+async function proceed() {
   const plan = selected.value
-  if (props.carId == null || plan == null || paying.value) return
+  if (props.carId == null || plan == null || creating.value) return
   haptic('medium')
-  paying.value = true
+  creating.value = true
   error.value = ''
   try {
     const order = await backend.createBoostOrder(props.carId, plan.id)
-    const { invoice_url } = await backend.getStarsInvoice(order.order_id)
-    if (typeof WebApp.openInvoice !== 'function') {
-      paying.value = false
-      error.value = 'Оплата звёздами доступна только в приложении Telegram'
-      return
-    }
-    WebApp.openInvoice(invoice_url, (status: string) => {
-      paying.value = false
-      if (status === 'paid') {
-        notify('success')
-        emit('boosted')
-        emit('update:open', false)
-      } else if (status === 'failed') {
-        error.value = 'Оплата не прошла. Попробуйте ещё раз.'
-      }
-      // 'cancelled' / 'pending' → silently allow retry
-    })
+    emit('update:open', false)
+    router.push({ name: 'pay', params: { orderId: order.order_id } })
   } catch (e) {
-    paying.value = false
+    creating.value = false
     const msg = e instanceof Error ? e.message : ''
-    // Network-level fetch rejection in WebKit surfaces as «Load failed».
-    error.value = /load failed|failed to fetch|networkerror/i.test(msg)
+    error.value = /load failed|failed to fetch|abort|networkerror/i.test(msg)
       ? 'Не удалось связаться с сервером. Проверьте интернет и попробуйте снова.'
       : 'Не удалось создать заказ. Попробуйте ещё раз.'
   }
@@ -128,19 +104,19 @@ async function pay() {
     <!-- Benefits -->
     <div class="mt-5 space-y-2.5">
       <div class="flex items-center gap-3">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
           <TrendingUp :size="16" :stroke-width="2" />
         </span>
         <p class="text-[14px] text-text">В числе первых в ленте и поиске</p>
       </div>
       <div class="flex items-center gap-3">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
           <Eye :size="16" :stroke-width="2" />
         </span>
         <p class="text-[14px] text-text">До 8× больше просмотров</p>
       </div>
       <div class="flex items-center gap-3">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
           <Zap :size="16" :stroke-width="2" />
         </span>
         <p class="text-[14px] text-text">Быстрее находят покупатели</p>
@@ -148,11 +124,11 @@ async function pay() {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="mt-5 space-y-2.5">
-      <div v-for="n in 1" :key="n" class="h-[64px] animate-pulse rounded-2xl bg-surface-2" />
+    <div v-if="loading" class="mt-5">
+      <div class="h-[64px] animate-pulse rounded-2xl bg-surface-2" />
     </div>
 
-    <!-- Failed to load tariffs -->
+    <!-- Failed to load -->
     <div v-else-if="!plans.length" class="mt-6 text-center">
       <p class="text-[14px] text-text-muted">{{ error || 'Тарифы недоступны' }}</p>
       <button
@@ -171,22 +147,24 @@ async function pay() {
           v-for="p in plans"
           :key="p.id"
           type="button"
-          class="flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-colors duration-fast"
-          :class="selectedId === p.id ? 'border-text bg-surface' : 'border-border bg-surface/40'"
+          class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors duration-fast"
+          :class="selectedId === p.id ? 'border-text/70 bg-surface-2' : 'border-transparent bg-surface'"
           @click="pick(p.id)"
         >
           <span
-            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-            :class="selectedId === p.id ? 'border-text bg-text text-bg' : 'border-border'"
+            class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+            :class="selectedId === p.id ? 'border-text bg-text text-bg' : 'border-text-faint'"
           >
-            <Check v-if="selectedId === p.id" :size="14" :stroke-width="3" />
+            <Check v-if="selectedId === p.id" :size="13" :stroke-width="3" />
           </span>
           <span class="min-w-0 flex-1">
             <span class="block text-[15px] font-semibold text-text">{{ p.name }}</span>
             <span class="block text-[12px] text-text-muted">{{ durationLabel(p.duration_hours) }} в топе</span>
           </span>
           <span class="shrink-0 text-right">
-            <span class="block text-[16px] font-bold text-text">{{ p.price_stars }} ★</span>
+            <span class="flex items-center justify-end gap-1 text-[16px] font-bold text-text">
+              {{ p.price_stars }} <TgStar :size="15" />
+            </span>
             <span class="block text-[11px] text-text-faint">{{ p.price_rub }} ₽</span>
           </span>
         </button>
@@ -198,21 +176,12 @@ async function pay() {
     <template v-if="plans.length" #footer>
       <button
         type="button"
-        :disabled="paying || selected == null"
+        :disabled="creating || selected == null"
         class="flex w-full items-center justify-center gap-2 rounded-pill bg-text py-3.5 text-[16px] font-semibold text-bg transition-transform duration-fast ease-out-ios active:scale-[0.98] disabled:opacity-50"
-        @click="pay"
+        @click="proceed"
       >
-        <Rocket v-if="!paying" :size="18" :stroke-width="2.2" />
-        {{ paying ? 'Открываем оплату…' : selected ? `Оплатить ${selected.price_stars} ★` : 'Оплатить' }}
-      </button>
-      <button
-        v-if="skippable"
-        type="button"
-        :disabled="paying"
-        class="mt-1 w-full py-2.5 text-center text-[14px] font-medium text-text-muted transition-colors active:text-text disabled:opacity-50"
-        @click="skip"
-      >
-        Может быть позже
+        <Rocket v-if="!creating" :size="18" :stroke-width="2.2" />
+        {{ creating ? 'Создаём заказ…' : 'Перейти к оплате' }}
       </button>
     </template>
   </BottomSheet>

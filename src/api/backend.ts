@@ -31,11 +31,22 @@ async function request<T>(path: string, opts: BackendRequestInit = {}): Promise<
 
   const body = opts.json ? JSON.stringify(opts.json) : opts.body
 
-  const resp = await fetch(url, {
-    method: opts.method ?? 'GET',
-    headers,
-    body,
-  })
+  // Guard against hung connections (mobile/WebView): abort after 15s so the
+  // caller gets a clear error instead of an indefinite spinner.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
+
+  let resp: Response
+  try {
+    resp = await fetch(url, {
+      method: opts.method ?? 'GET',
+      headers,
+      body,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
 
   if (!resp.ok) {
     // Stale/invalid token (e.g. backend user no longer exists) → drop it so the
@@ -482,6 +493,23 @@ export function getStarsInvoice(orderId: number): Promise<{ invoice_url: string 
   return request<{ invoice_url: string }>(`/api/orders/${orderId}/stars-invoice`, {
     method: 'POST',
   })
+}
+
+export interface OrderStatusResponse {
+  order_id: number
+  target_id: number
+  target_type: string
+  variant_id: number
+  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  duration_hours: number
+  price_stars: number
+  price_rub: number
+  variant_name: string
+}
+
+/** Poll order status after payment (GET /api/orders/{id}). */
+export function getOrderStatus(orderId: number): Promise<OrderStatusResponse> {
+  return request<OrderStatusResponse>(`/api/orders/${orderId}`)
 }
 
 /* ------------------------------------------------------------------

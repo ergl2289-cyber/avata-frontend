@@ -61,6 +61,12 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: { hideTabBar: true },
   },
+  {
+    path: '/pay/:orderId',
+    name: 'pay',
+    component: () => import('@/views/PayView.vue'),
+    meta: { hideTabBar: true },
+  },
 ]
 
 export const router = createRouter({

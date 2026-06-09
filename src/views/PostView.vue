@@ -9,7 +9,6 @@ import StepPrice from '@/components/listing/steps/StepPrice.vue'
 import StepCity from '@/components/listing/steps/StepCity.vue'
 import StepDescription from '@/components/listing/steps/StepDescription.vue'
 import StepBoost from '@/components/listing/steps/StepBoost.vue'
-import WebApp from '@twa-dev/sdk'
 import { emptyListingForm, type ListingForm } from '@/types/listing'
 import { useMyListingsStore, detailToForm } from '@/stores/myListings'
 import { getCarById, backend } from '@/api/cars.service'
@@ -197,12 +196,7 @@ async function publish() {
 async function payForBoost(carId: number) {
   try {
     const order = await backend.createBoostOrder(carId, BOOST_TARIFFS[0].id)
-    const { invoice_url } = await backend.getStarsInvoice(order.order_id)
-    if (typeof WebApp.openInvoice === 'function') {
-      WebApp.openInvoice(invoice_url, () => goToListings())
-    } else {
-      goToListings()
-    }
+    router.push({ name: 'pay', params: { orderId: order.order_id } })
   } catch {
     errorMsg.value =
       'Объявление опубликовано. Оплату продвижения не удалось начать — можно поднять позже в «Мои объявления».'
