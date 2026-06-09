@@ -76,16 +76,16 @@ function deleteAccount() {
     >
       <button
         type="button"
-        class="flex items-center gap-1.5 text-[15px] leading-none text-text-muted transition-colors active:text-text"
+        aria-label="Изменить профиль"
+        class="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-text transition-transform duration-fast ease-out-ios active:scale-90"
         @click="openEdit"
       >
-        <Pencil :size="16" :stroke-width="2" />
-        Изменить
+        <Pencil :size="18" :stroke-width="2" />
       </button>
       <button
         type="button"
         aria-label="Меню"
-        class="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-text transition-transform duration-fast ease-out-ios active:scale-90"
+        class="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-text transition-transform duration-fast ease-out-ios active:scale-90"
         @click="openDelete"
       >
         <MoreHorizontal :size="20" />
@@ -96,13 +96,13 @@ function deleteAccount() {
     <section class="flex flex-col items-center px-6 pt-2">
       <button
         type="button"
-        class="h-24 w-24 overflow-hidden rounded-full bg-surface active:scale-95"
+        class="h-32 w-32 overflow-hidden rounded-full bg-surface ring-1 ring-border transition-transform duration-fast ease-out-ios active:scale-95"
         @click="openEdit"
       >
         <img v-if="avatar" :src="avatar" :alt="displayName" class="h-full w-full object-cover" />
         <div
           v-else
-          class="flex h-full w-full items-center justify-center text-3xl font-semibold text-text-muted"
+          class="flex h-full w-full items-center justify-center text-4xl font-semibold text-text-muted"
         >
           {{ initials }}
         </div>
