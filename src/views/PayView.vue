@@ -2,7 +2,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { ChevronLeft, Rocket, CreditCard, ImageOff, Check } from 'lucide-vue-next'
+import { ChevronLeft, Rocket, CreditCard, ImageOff, Check, ShieldCheck } from 'lucide-vue-next'
 import TgStar from '@/components/ui/TgStar.vue'
 import { backend } from '@/api/cars.service'
 import { formatPrice } from '@/utils/format'
@@ -135,17 +135,19 @@ onMounted(load)
 
 <template>
   <main class="min-h-dvh bg-bg">
-    <!-- Header -->
-    <header class="sticky top-0 z-30 flex items-center gap-2 bg-bg/90 px-2 py-3 backdrop-blur-xl safe-top">
-      <button
-        type="button"
-        aria-label="Назад"
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text transition-transform duration-fast ease-out-ios active:scale-90"
-        @click="goBack"
-      >
-        <ChevronLeft :size="24" />
-      </button>
-      <h1 class="text-[17px] font-semibold text-text">Оплата</h1>
+    <!-- Header (matches the app-wide sticky header pattern) -->
+    <header class="sticky top-0 z-30 bg-bg/90 backdrop-blur-xl safe-top">
+      <div class="flex h-14 items-center gap-1 px-2">
+        <button
+          type="button"
+          aria-label="Назад"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text transition-transform duration-fast ease-out-ios active:scale-90"
+          @click="goBack"
+        >
+          <ChevronLeft :size="24" />
+        </button>
+        <h1 class="text-[17px] font-semibold text-text">Оплата</h1>
+      </div>
     </header>
 
     <div class="mx-auto max-w-md px-4 pt-3">
@@ -159,7 +161,7 @@ onMounted(load)
 
       <!-- Success -->
       <div v-else-if="order && order.status === 'completed'" class="flex flex-col items-center pt-16 text-center">
-        <div class="flex h-20 w-20 items-center justify-center rounded-full bg-text">
+        <div class="pay-pop flex h-20 w-20 items-center justify-center rounded-full bg-text">
           <Check :size="40" :stroke-width="2.4" class="text-bg" />
         </div>
         <h2 class="mt-5 text-[22px] font-bold text-text">Оплачено</h2>
@@ -244,6 +246,11 @@ onMounted(load)
 
           <p v-if="error" class="pt-1 text-center text-[13px] leading-snug text-like">{{ error }}</p>
         </div>
+
+        <p class="mt-5 flex items-center justify-center gap-1.5 text-[12px] text-text-faint">
+          <ShieldCheck :size="14" :stroke-width="1.8" />
+          Безопасная оплата через Telegram
+        </p>
       </template>
 
       <!-- Error / not found -->
@@ -251,3 +258,22 @@ onMounted(load)
     </div>
   </main>
 </template>
+
+<style scoped>
+.pay-pop {
+  animation: pay-pop 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes pay-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+</style>

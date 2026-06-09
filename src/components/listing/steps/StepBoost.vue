@@ -3,13 +3,13 @@ import { computed } from 'vue'
 import { TrendingUp, Eye, Zap, Check } from 'lucide-vue-next'
 import TgStar from '@/components/ui/TgStar.vue'
 import type { ListingForm } from '@/types/listing'
-import { BOOST_TARIFFS } from '@/api/backend'
+import { BOOST_DEFAULT_TARIFF } from '@/api/backend'
 import { useTelegram } from '@/composables/useTelegram'
 
 const props = defineProps<{ form: ListingForm }>()
 const { selection } = useTelegram()
 
-const tariff = computed(() => BOOST_TARIFFS[0])
+const tariff = computed(() => BOOST_DEFAULT_TARIFF)
 const days = computed(() => Math.round(tariff.value.duration_hours / 24))
 
 function choose(value: boolean) {

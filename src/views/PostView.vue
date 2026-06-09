@@ -12,7 +12,7 @@ import StepBoost from '@/components/listing/steps/StepBoost.vue'
 import { emptyListingForm, type ListingForm } from '@/types/listing'
 import { useMyListingsStore, detailToForm } from '@/stores/myListings'
 import { getCarById, backend } from '@/api/cars.service'
-import { BOOST_TARIFFS } from '@/api/backend'
+import { BOOST_DEFAULT_TARIFF } from '@/api/backend'
 import { useTelegram } from '@/composables/useTelegram'
 import type { CarDetail } from '@/types/car'
 
@@ -195,7 +195,7 @@ async function publish() {
  */
 async function payForBoost(carId: number) {
   try {
-    const order = await backend.createBoostOrder(carId, BOOST_TARIFFS[0].id)
+    const order = await backend.createBoostOrder(carId, BOOST_DEFAULT_TARIFF.id)
     router.push({ name: 'pay', params: { orderId: order.order_id } })
   } catch {
     errorMsg.value =

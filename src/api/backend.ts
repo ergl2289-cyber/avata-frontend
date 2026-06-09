@@ -458,18 +458,23 @@ export interface OrderResult {
 }
 
 /**
- * Built-in boost tariff. The backend exposes order creation by `variant_id`
- * (POST /api/orders) but, as of now, has NO endpoint to *list* tariffs
- * (`GET /api/products` is in the docs but not deployed). The actual charge is
- * taken from `product_variants` in the DB by id — so this list must mirror the
- * DB row (variant id=1: «На 3 дня», 980 ₽ / 500 ★). When the backend ships
- * GET /api/products, getBoostProducts() will transparently switch to it.
+ * Built-in boost tariffs — fallback when GET /api/products is unreachable.
+ * Mirrors `product_variants` in the DB (charge is taken from the DB by id).
+ * The 3-day plan (id 1) is the wizard's recommended entry option.
  */
 export const BOOST_TARIFFS: BoostProduct[] = [
+  { id: 5, name: 'На 1 день', duration_hours: 24, price_rub: 490, price_stars: 250 },
   { id: 1, name: 'На 3 дня', duration_hours: 72, price_rub: 980, price_stars: 500 },
+  { id: 2, name: 'На 7 дней', duration_hours: 168, price_rub: 1990, price_stars: 1000 },
+  { id: 3, name: 'На 14 дней', duration_hours: 336, price_rub: 3490, price_stars: 1800 },
+  { id: 4, name: 'На 30 дней', duration_hours: 720, price_rub: 5990, price_stars: 3000 },
 ]
 
-/** Boost tariffs. Tries the (future) backend endpoint, falls back to built-in. */
+/** The recommended plan offered as the in-wizard upsell (3 days). */
+export const BOOST_DEFAULT_TARIFF: BoostProduct =
+  BOOST_TARIFFS.find((t) => t.duration_hours === 72) ?? BOOST_TARIFFS[0]
+
+/** Boost tariffs. Tries the backend endpoint, falls back to built-in. */
 export async function getBoostProducts(): Promise<BoostProduct[]> {
   try {
     const list = await request<BoostProduct[]>('/api/products', { params: { type: 'boost' } })
