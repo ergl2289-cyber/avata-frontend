@@ -4,7 +4,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronsUp, TrendingUp, Eye, Zap, Check } from 'lucide-vue-next'
+import { Check } from 'lucide-vue-next'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
 import TgStar from '@/components/ui/TgStar.vue'
 import { backend } from '@/api/cars.service'
@@ -93,34 +93,23 @@ async function proceed() {
 
 <template>
   <BottomSheet :open="open" :title="title" @update:open="emit('update:open', $event)">
-    <!-- Hero -->
-    <div class="flex flex-col items-center pb-1 text-center">
-      <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-text">
-        <ChevronsUp :size="28" :stroke-width="2.4" class="text-bg" />
-      </div>
-      <p class="mt-3 text-[14px] leading-snug text-text-muted">{{ subtitle }}</p>
-    </div>
+    <!-- Intro -->
+    <p class="-mt-1 mb-1 text-center text-[14px] leading-snug text-text-muted">{{ subtitle }}</p>
 
-    <!-- Benefits -->
-    <div class="mt-5 space-y-2.5">
-      <div class="flex items-center gap-3">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
-          <TrendingUp :size="16" :stroke-width="2" />
-        </span>
-        <p class="text-[14px] text-text">В числе первых в ленте и поиске</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
-          <Eye :size="16" :stroke-width="2" />
-        </span>
-        <p class="text-[14px] text-text">До 8× больше просмотров</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
-          <Zap :size="16" :stroke-width="2" />
-        </span>
-        <p class="text-[14px] text-text">Быстрее находят покупатели</p>
-      </div>
+    <!-- Benefits (text only) -->
+    <div class="mt-4 space-y-2 rounded-2xl bg-surface px-4 py-3.5">
+      <p class="flex items-start gap-2 text-[14px] leading-snug text-text">
+        <span class="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-text-muted" />
+        В числе первых в ленте и поиске
+      </p>
+      <p class="flex items-start gap-2 text-[14px] leading-snug text-text">
+        <span class="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-text-muted" />
+        До 8× больше просмотров
+      </p>
+      <p class="flex items-start gap-2 text-[14px] leading-snug text-text">
+        <span class="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-text-muted" />
+        Быстрее находят покупатели
+      </p>
     </div>
 
     <!-- Loading -->
@@ -180,7 +169,6 @@ async function proceed() {
         class="flex w-full items-center justify-center gap-2 rounded-pill bg-text py-3.5 text-[16px] font-semibold text-bg transition-transform duration-fast ease-out-ios active:scale-[0.98] disabled:opacity-50"
         @click="proceed"
       >
-        <ChevronsUp v-if="!creating" :size="20" :stroke-width="2.4" />
         {{ creating ? 'Создаём заказ…' : 'Перейти к оплате' }}
       </button>
     </template>

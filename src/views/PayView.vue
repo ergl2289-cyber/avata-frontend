@@ -2,7 +2,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { ChevronLeft, ChevronsUp, CreditCard, ImageOff, Check, ShieldCheck } from 'lucide-vue-next'
+import { ChevronLeft, CreditCard, ImageOff, Check, ShieldCheck } from 'lucide-vue-next'
 import TgStar from '@/components/ui/TgStar.vue'
 import { backend } from '@/api/cars.service'
 import { formatPrice } from '@/utils/format'
@@ -190,9 +190,7 @@ onMounted(load)
           <div class="flex min-w-0 flex-1 flex-col justify-center">
             <p class="truncate text-[15px] font-semibold text-text">{{ car.title || 'Объявление' }}</p>
             <p v-if="car.price" class="mt-0.5 text-[15px] font-bold text-text">{{ formatPrice(car.price) }}</p>
-            <p class="mt-0.5 flex items-center gap-1.5 text-[12px] text-text-muted">
-              <ChevronsUp :size="14" :stroke-width="2.4" /> {{ order.variant_name }}
-            </p>
+            <p class="mt-0.5 text-[12px] text-text-muted">{{ order.variant_name }}</p>
           </div>
         </div>
 
