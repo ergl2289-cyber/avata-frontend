@@ -48,15 +48,15 @@ function choose(value: boolean) {
       <!-- Boost option -->
       <button
         type="button"
-        class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors duration-fast"
-        :class="form.boost ? 'border-text/70 bg-surface-2' : 'border-transparent bg-surface'"
+        class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-base"
+        :class="form.boost ? 'bg-surface-2' : 'bg-surface/60'"
         @click="choose(true)"
       >
         <span
-          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-          :class="form.boost ? 'border-text bg-text text-bg' : 'border-text-faint'"
+          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors"
+          :class="form.boost ? 'bg-text text-bg' : 'bg-surface-2'"
         >
-          <Check v-if="form.boost" :size="13" :stroke-width="3" />
+          <Check v-if="form.boost" :size="12" :stroke-width="3" />
         </span>
         <span class="min-w-0 flex-1">
           <span class="flex items-center gap-2">
@@ -78,15 +78,15 @@ function choose(value: boolean) {
       <!-- Skip option -->
       <button
         type="button"
-        class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors duration-fast"
-        :class="!form.boost ? 'border-text/70 bg-surface-2' : 'border-transparent bg-surface'"
+        class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-base"
+        :class="!form.boost ? 'bg-surface-2' : 'bg-surface/60'"
         @click="choose(false)"
       >
         <span
-          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-          :class="!form.boost ? 'border-text bg-text text-bg' : 'border-text-faint'"
+          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors"
+          :class="!form.boost ? 'bg-text text-bg' : 'bg-surface-2'"
         >
-          <Check v-if="!form.boost" :size="13" :stroke-width="3" />
+          <Check v-if="!form.boost" :size="12" :stroke-width="3" />
         </span>
         <span class="text-[15px] font-medium text-text">Без продвижения</span>
       </button>

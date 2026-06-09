@@ -65,6 +65,12 @@ function durationLabel(hours: number): string {
   return `${days} ${word}`
 }
 
+/** Backend names come prefixed («Поднятие объявления — На 3 дня»); show the short tail. */
+function planName(name: string): string {
+  const parts = name.split('—')
+  return (parts.length > 1 ? parts[parts.length - 1] : name).trim()
+}
+
 function pick(id: number) {
   if (selectedId.value === id) return
   selection()
@@ -131,23 +137,23 @@ async function proceed() {
 
     <!-- Tariffs -->
     <template v-else>
-      <div class="mt-5 space-y-2.5">
+      <div class="mt-5 space-y-2">
         <button
           v-for="p in plans"
           :key="p.id"
           type="button"
-          class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors duration-fast"
-          :class="selectedId === p.id ? 'border-text/70 bg-surface-2' : 'border-transparent bg-surface'"
+          class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-base"
+          :class="selectedId === p.id ? 'bg-surface-2' : 'bg-surface/60'"
           @click="pick(p.id)"
         >
           <span
-            class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-            :class="selectedId === p.id ? 'border-text bg-text text-bg' : 'border-text-faint'"
+            class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors"
+            :class="selectedId === p.id ? 'bg-text text-bg' : 'bg-surface-2'"
           >
-            <Check v-if="selectedId === p.id" :size="13" :stroke-width="3" />
+            <Check v-if="selectedId === p.id" :size="12" :stroke-width="3" />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block text-[15px] font-semibold text-text">{{ p.name }}</span>
+            <span class="block text-[15px] font-semibold text-text">{{ planName(p.name) }}</span>
             <span class="block text-[12px] text-text-muted">{{ durationLabel(p.duration_hours) }} в топе</span>
           </span>
           <span class="shrink-0 text-right">
