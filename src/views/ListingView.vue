@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { ChevronLeft, MessageCircle, Share2, Eye, Heart, Star, Rocket, Pencil } from 'lucide-vue-next'
+import { ChevronLeft, MessageCircle, Share2, Eye, Heart, Star, ChevronsUp, Pencil } from 'lucide-vue-next'
 import logoUrl from '@/assets/logo-avata.webp'
 import PhotoGallery from '@/components/car/PhotoGallery.vue'
 import LikeButton from '@/components/car/LikeButton.vue'
@@ -462,7 +462,7 @@ onMounted(load)
             :class="isBoosted ? 'bg-surface-2 text-text' : 'bg-text text-bg'"
             @click="openBoost"
           >
-            <Rocket :size="18" :stroke-width="2.2" />
+            <ChevronsUp :size="20" :stroke-width="2.4" />
             {{ isBoosted ? 'Продлить в топе' : 'Поднять в топ' }}
           </button>
         </div>

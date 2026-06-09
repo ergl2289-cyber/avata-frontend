@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Pencil, Archive, ArchiveRestore, Trash2, Rocket } from 'lucide-vue-next'
+import { Pencil, Archive, ArchiveRestore, Trash2, ChevronsUp } from 'lucide-vue-next'
 import MyListingCard from '@/components/listing/MyListingCard.vue'
 import DraftCard from '@/components/listing/DraftCard.vue'
 import ConfirmSheet from '@/components/ui/ConfirmSheet.vue'
@@ -269,7 +269,7 @@ onMounted(() => store.load())
           class="flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-[15px] font-medium text-text transition-colors active:bg-surface-2"
           @click="boostListing"
         >
-          <Rocket :size="20" :stroke-width="1.8" /> Поднять в топ
+          <ChevronsUp :size="20" :stroke-width="2.2" /> Поднять в топ
         </button>
         <button
           type="button"

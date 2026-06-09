@@ -2,7 +2,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { ChevronLeft, Rocket, CreditCard, ImageOff, Check, ShieldCheck } from 'lucide-vue-next'
+import { ChevronLeft, ChevronsUp, CreditCard, ImageOff, Check, ShieldCheck } from 'lucide-vue-next'
 import TgStar from '@/components/ui/TgStar.vue'
 import { backend } from '@/api/cars.service'
 import { formatPrice } from '@/utils/format'
@@ -191,7 +191,7 @@ onMounted(load)
             <p class="truncate text-[15px] font-semibold text-text">{{ car.title || 'Объявление' }}</p>
             <p v-if="car.price" class="mt-0.5 text-[15px] font-bold text-text">{{ formatPrice(car.price) }}</p>
             <p class="mt-0.5 flex items-center gap-1.5 text-[12px] text-text-muted">
-              <Rocket :size="13" :stroke-width="2" /> {{ order.variant_name }}
+              <ChevronsUp :size="14" :stroke-width="2.4" /> {{ order.variant_name }}
             </p>
           </div>
         </div>

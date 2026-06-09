@@ -4,7 +4,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Rocket, TrendingUp, Eye, Zap, Check } from 'lucide-vue-next'
+import { ChevronsUp, TrendingUp, Eye, Zap, Check } from 'lucide-vue-next'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
 import TgStar from '@/components/ui/TgStar.vue'
 import { backend } from '@/api/cars.service'
@@ -96,7 +96,7 @@ async function proceed() {
     <!-- Hero -->
     <div class="flex flex-col items-center pb-1 text-center">
       <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-text">
-        <Rocket :size="26" :stroke-width="2" class="text-bg" />
+        <ChevronsUp :size="28" :stroke-width="2.4" class="text-bg" />
       </div>
       <p class="mt-3 text-[14px] leading-snug text-text-muted">{{ subtitle }}</p>
     </div>
@@ -180,7 +180,7 @@ async function proceed() {
         class="flex w-full items-center justify-center gap-2 rounded-pill bg-text py-3.5 text-[16px] font-semibold text-bg transition-transform duration-fast ease-out-ios active:scale-[0.98] disabled:opacity-50"
         @click="proceed"
       >
-        <Rocket v-if="!creating" :size="18" :stroke-width="2.2" />
+        <ChevronsUp v-if="!creating" :size="20" :stroke-width="2.4" />
         {{ creating ? 'Создаём заказ…' : 'Перейти к оплате' }}
       </button>
     </template>
