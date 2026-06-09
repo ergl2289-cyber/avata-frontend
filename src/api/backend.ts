@@ -467,7 +467,6 @@ export const BOOST_TARIFFS: BoostProduct[] = [
   { id: 1, name: 'На 3 дня', duration_hours: 72, price_rub: 980, price_stars: 500 },
   { id: 2, name: 'На 7 дней', duration_hours: 168, price_rub: 1990, price_stars: 1000 },
   { id: 3, name: 'На 14 дней', duration_hours: 336, price_rub: 3490, price_stars: 1800 },
-  { id: 4, name: 'На 30 дней', duration_hours: 720, price_rub: 5990, price_stars: 3000 },
 ]
 
 /** The recommended plan offered as the in-wizard upsell (3 days). */

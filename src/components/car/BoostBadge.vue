@@ -1,15 +1,16 @@
 <script setup lang="ts">
 /**
- * Badge for a boosted (paid-pinned) listing. Shows «Поднято» with a small
+ * Badge for a boosted (paid-pinned) listing. Shows «В топе» with a small
  * remaining-time hint derived from `boosted_until`. Hidden when not boosted.
+ * Dark translucent chip — reads well over photos and in status rows.
  */
 import { computed } from 'vue'
-import { Rocket } from 'lucide-vue-next'
+import { TrendingUp } from 'lucide-vue-next'
 
 const props = defineProps<{
   boosted?: boolean
   until?: string | null
-  /** Icon-only chip (for tight overlays). */
+  /** Hide the remaining-time hint (tight rows). */
   compact?: boolean
 }>()
 
@@ -31,11 +32,9 @@ const remaining = computed(() => {
 <template>
   <span
     v-if="active"
-    class="inline-flex items-center gap-1 rounded-pill bg-text px-2 py-0.5 text-[11px] font-semibold text-bg shadow-sm"
+    class="inline-flex items-center gap-1 rounded-pill bg-bg/75 px-2 py-0.5 text-[11px] font-semibold text-text ring-1 ring-white/10 backdrop-blur-sm"
   >
-    <Rocket :size="12" :stroke-width="2.2" />
-    <template v-if="!compact">
-      Поднято<template v-if="remaining"> · {{ remaining }}</template>
-    </template>
+    <TrendingUp :size="12" :stroke-width="2.4" />
+    В топе<template v-if="!compact && remaining"> · {{ remaining }}</template>
   </span>
 </template>
