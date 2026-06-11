@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Pencil, Archive, ArchiveRestore, Trash2, ChevronsUp } from 'lucide-vue-next'
 import MyListingCard from '@/components/listing/MyListingCard.vue'
@@ -146,6 +146,13 @@ async function confirmDelete() {
 }
 
 onMounted(() => store.load())
+
+// The floating «Разместить» button is teleported to <body> (see template) so the
+// page-enter transform on <main> can't re-base its fixed position and make it jump.
+// Gate its visibility with the keep-alive hooks so it doesn't linger on other tabs.
+const fabVisible = ref(true)
+onActivated(() => (fabVisible.value = true))
+onDeactivated(() => (fabVisible.value = false))
 </script>
 
 <template>
@@ -238,19 +245,24 @@ onMounted(() => store.load())
       <EmptyState v-else :key="tab" :title="empty.title" :subtitle="empty.subtitle" />
     </section>
 
-    <!-- Place-ad button (raised above tab bar for breathing room) -->
-    <div
-      class="fixed inset-x-0 z-30 px-4"
-      style="bottom: calc(84px + var(--safe-bottom))"
-    >
-      <button
-        type="button"
-        class="w-full rounded-pill bg-text py-3.5 text-[15px] font-semibold text-bg shadow-lg shadow-black/40 transition-transform duration-fast ease-out-ios active:scale-[0.98]"
-        @click="createListing"
+    <!-- Place-ad button — teleported to <body> so the page-enter transform on
+         <main> can't re-base its fixed position (was causing a jump on open).
+         Raised above the tab bar for breathing room. -->
+    <Teleport to="body">
+      <div
+        v-if="fabVisible"
+        class="fixed inset-x-0 z-30 px-4"
+        style="bottom: calc(84px + var(--safe-bottom))"
       >
-        Разместить объявление
-      </button>
-    </div>
+        <button
+          type="button"
+          class="w-full rounded-pill bg-text py-3.5 text-[15px] font-semibold text-bg shadow-lg shadow-black/40 transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+          @click="createListing"
+        >
+          Разместить объявление
+        </button>
+      </div>
+    </Teleport>
 
     <ConfirmSheet
       v-model:open="confirmOpen"
