@@ -30,10 +30,26 @@ const query = ref('')
 // Only bother with a search box once the list is long enough to scroll.
 const showSearch = computed(() => props.options.length > 6)
 
+/**
+ * Ranked search: prefix matches first («au» → Audi before Renault), then
+ * word-start matches («ser» → «3 Series»), then any substring. Within the same
+ * rank the original order is kept — and since the list arrives popularity-first,
+ * the most popular relevant option floats to the top.
+ */
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return props.options
-  return props.options.filter((o) => o.name.toLowerCase().includes(q))
+  const scored: { o: Option; s: number; i: number }[] = []
+  props.options.forEach((o, i) => {
+    const n = o.name.toLowerCase()
+    let s = -1
+    if (n.startsWith(q)) s = 0
+    else if (n.split(/[\s\-/()]+/).some((w) => w.startsWith(q))) s = 1
+    else if (n.includes(q)) s = 2
+    if (s >= 0) scored.push({ o, s, i })
+  })
+  scored.sort((a, b) => a.s - b.s || a.i - b.i)
+  return scored.map((x) => x.o)
 })
 
 // Reset the query each time the sheet (re)opens.
