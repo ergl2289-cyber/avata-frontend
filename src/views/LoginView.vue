@@ -9,7 +9,7 @@ const BOT_ID = '8669280661'
 // объявлении (/car/:id) — прокидываем startapp=car_<id>, чтобы Mini App открыл
 // именно его (см. разбор start_param в main.ts). Внутри Telegram вход идёт по
 // initData — это рабочий путь, когда ссылку открыли во встроенном браузере TG.
-const BOT = 'https://t.me/avata_frontend_bot'
+const BOT = 'https://t.me/AvataAuto_bot'
 const startParam = (() => {
   const m = /^\/car\/(\d+)/.exec(window.location.pathname)
   return m ? `car_${m[1]}` : ''

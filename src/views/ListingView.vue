@@ -183,7 +183,7 @@ function goBack() {
 const shared = ref(false)
 const toastText = ref('')
 
-const BOT = 'https://t.me/avata_frontend_bot'
+const BOT = 'https://t.me/AvataAuto_bot'
 
 function inTelegram() {
   try {
