@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import type { City } from '@/types/car'
 import { getUserProfile, updateUserProfile, setUserCity, type UserProfile } from '@/api/backend'
 import { isLoggedIn } from '@/api/auth'
-import { useTelegramStore } from './telegram'
+import { useTelegramStore, recallPhoto } from './telegram'
 
 const CITY_KEY = 'avata:city'
 const NAME_KEY = 'avata:name'
@@ -79,7 +79,9 @@ export const useProfileStore = defineStore('profile', () => {
           /* keep local city; will retry on next launch */
         }
       }
-      // In browser mode (no initData) — populate telegram user from server data
+      // In browser mode (no initData) — populate telegram user from server data.
+      // The backend doesn't store the avatar, so reuse the photo_url we cached at
+      // login (recallPhoto) instead of nulling it → the avatar survives a refresh.
       const tgStore = useTelegramStore()
       if (!tgStore.user && !tgStore.initData) {
         tgStore.user = {
@@ -87,7 +89,7 @@ export const useProfileStore = defineStore('profile', () => {
           username: profile.username,
           first_name: profile.first_name ?? '',
           last_name: profile.last_name ?? null,
-          photo_url: null,
+          photo_url: recallPhoto(),
         }
       }
       return profile.city_id != null && profile.city_name != null

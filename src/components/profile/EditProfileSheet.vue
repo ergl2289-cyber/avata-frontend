@@ -35,18 +35,39 @@ watch(
 function choosePhoto() {
   fileInput.value?.click()
 }
+// Downscale to a small square before storing. A raw phone photo is a 3–7 MB
+// data URL, which blows the ~5 MB localStorage quota → the write silently fails
+// and the avatar "disappears" on reload. 256×256 JPEG keeps it ~20–30 KB.
+function downscaleSquare(dataUrl: string, size = 256): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return resolve(dataUrl)
+      const s = Math.min(img.width, img.height) // cover-crop to square
+      ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = () => resolve(dataUrl)
+    img.src = dataUrl
+  })
+}
+
 function onFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
+  ;(e.target as HTMLInputElement).value = ''
   if (!file) return
   const reader = new FileReader()
-  reader.onload = () => {
-    if (typeof reader.result === 'string') {
-      photoOverride.value = reader.result
-      preview.value = reader.result
-    }
+  reader.onload = async () => {
+    if (typeof reader.result !== 'string') return
+    const small = await downscaleSquare(reader.result)
+    photoOverride.value = small
+    preview.value = small
   }
   reader.readAsDataURL(file)
-  ;(e.target as HTMLInputElement).value = ''
 }
 function resetPhoto() {
   haptic('light')

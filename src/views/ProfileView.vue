@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
 import { MoreHorizontal, ChevronRight, MapPin, Pencil, LogOut } from 'lucide-vue-next'
@@ -27,6 +27,11 @@ const avatar = computed(() => profile.customPhoto || tg.user?.photo_url || null)
 const username = computed(() => tg.user?.username ?? null)
 const idText = computed(() => (tg.user ? String(tg.user.telegram_id) : '—'))
 const initials = computed(() => (tg.user?.first_name?.[0] ?? '?').toUpperCase())
+
+// A cached Telegram photo URL can expire/403 — fall back to initials instead of a
+// broken image. Reset when the source changes so a new valid photo gets a chance.
+const avatarBroken = ref(false)
+watch(avatar, () => (avatarBroken.value = false))
 
 function openDelete() {
   haptic('light')
@@ -99,7 +104,13 @@ function deleteAccount() {
         class="h-32 w-32 overflow-hidden rounded-full bg-surface ring-1 ring-border transition-transform duration-fast ease-out-ios active:scale-95"
         @click="openEdit"
       >
-        <img v-if="avatar" :src="avatar" :alt="displayName" class="h-full w-full object-cover" />
+        <img
+          v-if="avatar && !avatarBroken"
+          :src="avatar"
+          :alt="displayName"
+          class="h-full w-full object-cover"
+          @error="avatarBroken = true"
+        />
         <div
           v-else
           class="flex h-full w-full items-center justify-center text-4xl font-semibold text-text-muted"

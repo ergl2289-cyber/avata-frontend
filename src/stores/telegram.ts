@@ -15,6 +15,26 @@ export interface TelegramUser {
  * Holds the authenticated Telegram user (from initData). No forms, no passwords.
  * Signature validation happens on the backend; the frontend only reads identity.
  */
+// Telegram's photo_url is only handed to us transiently (initData on each launch,
+// or once in the OAuth widget payload) — the backend doesn't store it. Cache the
+// last seen URL so the user's own avatar survives a browser refresh instead of
+// flickering away. See profile.loadFromServer (browser branch).
+const TG_PHOTO_KEY = 'avata:tgphoto'
+export function rememberPhoto(url: string) {
+  try {
+    localStorage.setItem(TG_PHOTO_KEY, url)
+  } catch {
+    /* ignore */
+  }
+}
+export function recallPhoto(): string | null {
+  try {
+    return localStorage.getItem(TG_PHOTO_KEY)
+  } catch {
+    return null
+  }
+}
+
 export const useTelegramStore = defineStore('telegram', () => {
   const user = ref<TelegramUser | null>(null)
   const initData = ref<string>('')
@@ -33,6 +53,7 @@ export const useTelegramStore = defineStore('telegram', () => {
         last_name: u.last_name ?? null,
         photo_url: u.photo_url ?? null,
       }
+      if (u.photo_url) rememberPhoto(u.photo_url)
     }
   }
 
@@ -96,6 +117,7 @@ export const useTelegramStore = defineStore('telegram', () => {
         last_name: widgetUser.last_name ?? null,
         photo_url: widgetUser.photo_url ?? null,
       }
+      if (widgetUser.photo_url) rememberPhoto(widgetUser.photo_url)
       isAuthenticated.value = true
       return true
     } catch (e) {
@@ -110,6 +132,11 @@ export const useTelegramStore = defineStore('telegram', () => {
     apiLogout()
     isAuthenticated.value = false
     user.value = null
+    try {
+      localStorage.removeItem(TG_PHOTO_KEY)
+    } catch {
+      /* ignore */
+    }
     sessionStorage.setItem('avata:loggedOut', '1')
   }
 
