@@ -11,6 +11,11 @@ const { selection } = useTelegram()
 
 const tariff = computed(() => BOOST_DEFAULT_TARIFF)
 const days = computed(() => Math.round(tariff.value.duration_hours / 24))
+const topLabel = computed(() => {
+  const d = days.value
+  const word = d === 1 ? 'день' : d < 5 ? 'дня' : 'дней'
+  return `${d} ${word} в топе`
+})
 
 function choose(value: boolean) {
   if (props.form.boost === value) return
@@ -65,7 +70,7 @@ function choose(value: boolean) {
               советуем
             </span>
           </span>
-          <span class="mt-0.5 block text-[13px] text-text-muted">{{ days }} дня в топе</span>
+          <span class="mt-0.5 block text-[13px] text-text-muted">{{ topLabel }}</span>
         </span>
         <span class="shrink-0 text-right">
           <span class="flex items-center justify-end gap-1 text-[16px] font-bold text-text">

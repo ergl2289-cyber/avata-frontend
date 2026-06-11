@@ -458,25 +458,29 @@ export interface OrderResult {
 }
 
 /**
- * Built-in boost tariffs — fallback when GET /api/products is unreachable.
- * Mirrors `product_variants` in the DB (charge is taken from the DB by id).
- * The 3-day plan (id 1) is the wizard's recommended entry option.
+ * Built-in boost tariff — fallback when GET /api/products is unreachable.
+ * Mirrors `product_variants` in the DB (the real charge is taken from the DB
+ * by id). Single offering: 1 day in top for 980 ₽ (≈ 500 ★).
  */
 export const BOOST_TARIFFS: BoostProduct[] = [
-  { id: 5, name: 'На 1 день', duration_hours: 24, price_rub: 490, price_stars: 250 },
-  { id: 1, name: 'На 3 дня', duration_hours: 72, price_rub: 980, price_stars: 500 },
-  { id: 2, name: 'На 7 дней', duration_hours: 168, price_rub: 1990, price_stars: 1000 },
+  { id: 5, name: 'На 1 день', duration_hours: 24, price_rub: 980, price_stars: 500 },
 ]
 
-/** The recommended plan offered as the in-wizard upsell (3 days). */
-export const BOOST_DEFAULT_TARIFF: BoostProduct =
-  BOOST_TARIFFS.find((t) => t.duration_hours === 72) ?? BOOST_TARIFFS[0]
+/** The single boost plan offered in the wizard upsell and the sheet. */
+export const BOOST_DEFAULT_TARIFF: BoostProduct = BOOST_TARIFFS[0]
 
-/** Boost tariffs. Tries the backend endpoint, falls back to built-in. */
+/**
+ * Boost tariff. Tries the backend endpoint, falls back to built-in. We offer a
+ * single 1-day plan, so collapse whatever the backend returns to the 1-day
+ * variant (id 5 / 24 h) to keep the UI and the charge in sync.
+ */
 export async function getBoostProducts(): Promise<BoostProduct[]> {
   try {
     const list = await request<BoostProduct[]>('/api/products', { params: { type: 'boost' } })
-    if (Array.isArray(list) && list.length) return list
+    if (Array.isArray(list) && list.length) {
+      const oneDay = list.find((p) => p.duration_hours === 24) ?? list[0]
+      return [oneDay]
+    }
   } catch {
     /* endpoint not deployed yet — use the built-in tariff below */
   }
