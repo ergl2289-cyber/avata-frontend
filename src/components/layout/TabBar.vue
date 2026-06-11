@@ -9,13 +9,24 @@ const route = useRoute()
 const { selection } = useTelegram()
 const favorites = useFavoritesStore()
 
-const tabs = [
-  { tab: 'home', to: '/', label: 'Поиск', icon: Search },
-  { tab: 'favorites', to: '/favorites', label: 'Избранное', icon: Heart },
-  { tab: 'post', to: '/listings', label: 'Объявления', icon: SquarePlus },
-  { tab: 'profile', to: '/profile', label: 'Профиль', icon: User },
-  { tab: 'apiTest', to: '/dev/api-test', label: 'Тест', icon: Bug },
-] as const
+// Вкладка «Тест» (API Test Panel) скрыта из пользовательского интерфейса.
+// Чтобы вернуть её в таб-бар — поставь true. Сам экран при этом всегда доступен
+// по прямому адресу /dev/api-test (роут не удалён), так что Игорь может зайти
+// в него и не включая вкладку.
+const SHOW_API_TEST = false
+
+const tabs = computed(() => {
+  const base = [
+    { tab: 'home', to: '/', label: 'Поиск', icon: Search },
+    { tab: 'favorites', to: '/favorites', label: 'Избранное', icon: Heart },
+    { tab: 'post', to: '/listings', label: 'Объявления', icon: SquarePlus },
+    { tab: 'profile', to: '/profile', label: 'Профиль', icon: User },
+  ]
+  if (SHOW_API_TEST) {
+    base.push({ tab: 'apiTest', to: '/dev/api-test', label: 'Тест', icon: Bug })
+  }
+  return base
+})
 
 const activeTab = computed(() => route.meta.tab as string | undefined)
 </script>
