@@ -4,7 +4,10 @@ import { ExternalLink } from 'lucide-vue-next'
 import WebApp from '@twa-dev/sdk'
 import logoUrl from '@/assets/logo-avata.webp'
 
-const BOT_ID = '8669280661'
+// Числовой id боевого бота @AvataAuto_bot. ВАЖНО: должен совпадать с BOT_TOKEN на
+// бэке — иначе OAuth-виджет подпишет вход старым ботом, а бэкенд проверит новым и
+// вернёт «Invalid widget hash» (пользователя выкидывает обратно на экран входа).
+const BOT_ID = '8800033995'
 // Бот Mini App. ?startapp запускает приложение; если ссылку открыли на конкретном
 // объявлении (/car/:id) — прокидываем startapp=car_<id>, чтобы Mini App открыл
 // именно его (см. разбор start_param в main.ts). Внутри Telegram вход идёт по
