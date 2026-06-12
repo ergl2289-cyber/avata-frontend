@@ -83,7 +83,7 @@ avata-frontend (Vue 3 / Vite / TypeScript)
 
 ```
 src/api/
-├── directus.ts       # Публичные справочники (НЕ ТРОГАТЬ — работает как было)
+├── directus.ts       # Публичные справочники (чтение без авторизации)
 ├── backend.ts        # ★ FastAPI-клиент — все эндпоинты нашей апишки
 ├── auth.ts           # ★ JWT: login/logout/loginWidget/loginTest/getToken (localStorage)
 ├── cars.service.ts   # ★ Слой адаптации: backend → Directus-формат
