@@ -51,6 +51,7 @@ const DETAIL_FIELDS = [
   'seller.username',
   'seller.first_name',
   'seller.last_name',
+  'seller.avatar_url',
   'files.id',
   'files.directus_files_id.id',
   'technical_specs.*',
@@ -90,6 +91,7 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
         first_name: d.seller.first_name ?? '',
         last_name: d.seller.last_name,
         city: null,
+        avatar_url: d.seller.avatar_url ?? null,
       }
     : {
         id: '',
@@ -98,6 +100,7 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
         first_name: '',
         last_name: null,
         city: null,
+        avatar_url: null,
       }
   return {
     id: d.id,

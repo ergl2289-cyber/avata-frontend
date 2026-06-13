@@ -15,9 +15,10 @@ const { haptic } = useTelegram()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const name = ref('')
-// undefined = unchanged, null = revert to Telegram, string = new data URL
-const photoOverride = ref<string | null | undefined>(undefined)
+// undefined = unchanged, null = revert to Telegram, File = new upload
+const photoChange = ref<File | null | undefined>(undefined)
 const preview = ref<string | null>(null)
+const saving = ref(false)
 
 const tgPhoto = () => tg.user?.photo_url ?? null
 const initials = () => (tg.user?.first_name?.[0] ?? '?').toUpperCase()
@@ -27,58 +28,46 @@ watch(
   (isOpen) => {
     if (!isOpen) return
     name.value = profile.customName ?? tg.fullName ?? ''
-    photoOverride.value = undefined
-    preview.value = profile.customPhoto ?? tgPhoto()
+    photoChange.value = undefined
+    preview.value = profile.avatarUrl ?? tgPhoto()
   },
 )
 
 function choosePhoto() {
   fileInput.value?.click()
 }
-// Downscale to a small square before storing. A raw phone photo is a 3–7 MB
-// data URL, which blows the ~5 MB localStorage quota → the write silently fails
-// and the avatar "disappears" on reload. 256×256 JPEG keeps it ~20–30 KB.
-function downscaleSquare(dataUrl: string, size = 256): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return resolve(dataUrl)
-      const s = Math.min(img.width, img.height) // cover-crop to square
-      ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
-    }
-    img.onerror = () => resolve(dataUrl)
-    img.src = dataUrl
-  })
-}
-
 function onFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   ;(e.target as HTMLInputElement).value = ''
   if (!file) return
+  photoChange.value = file
+  // Instant local preview (the real, compressed image is produced by the backend).
   const reader = new FileReader()
-  reader.onload = async () => {
-    if (typeof reader.result !== 'string') return
-    const small = await downscaleSquare(reader.result)
-    photoOverride.value = small
-    preview.value = small
+  reader.onload = () => {
+    if (typeof reader.result === 'string') preview.value = reader.result
   }
   reader.readAsDataURL(file)
 }
 function resetPhoto() {
   haptic('light')
-  photoOverride.value = null
+  photoChange.value = null
   preview.value = tgPhoto()
 }
 
-function save() {
+async function save() {
+  if (saving.value) return
   haptic('medium')
-  profile.setName(name.value)
-  if (photoOverride.value !== undefined) profile.setPhoto(photoOverride.value)
+  saving.value = true
+  try {
+    await profile.setName(name.value)
+    if (photoChange.value instanceof File) {
+      await profile.uploadAvatar(photoChange.value)
+    } else if (photoChange.value === null) {
+      await profile.resetAvatar()
+    }
+  } finally {
+    saving.value = false
+  }
   emit('update:open', false)
 }
 </script>
@@ -133,12 +122,12 @@ function save() {
     <template #footer>
       <button
         type="button"
-        :disabled="!name.trim()"
+        :disabled="!name.trim() || saving"
         class="w-full rounded-xl py-3.5 text-[15px] font-semibold transition-transform duration-fast ease-out-ios active:scale-[0.98] disabled:opacity-40"
         :class="name.trim() ? 'bg-text text-bg' : 'bg-surface-2 text-text-faint'"
         @click="save"
       >
-        Сохранить
+        {{ saving ? 'Сохранение…' : 'Сохранить' }}
       </button>
     </template>
   </BottomSheet>

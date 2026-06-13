@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { City } from '@/types/car'
-import { getUserProfile, updateUserProfile, setUserCity, type UserProfile } from '@/api/backend'
+import { getUserProfile, updateUserProfile, setUserCity, uploadUserAvatar, type UserProfile } from '@/api/backend'
 import { isLoggedIn } from '@/api/auth'
 import { useTelegramStore, recallPhoto } from './telegram'
 
@@ -48,7 +48,10 @@ function write(key: string, value: string | null) {
 export const useProfileStore = defineStore('profile', () => {
   const city = ref<StoredCity | null>(loadCity())
   const customName = ref<string | null>(read(NAME_KEY))
-  const customPhoto = ref<string | null>(read(PHOTO_KEY))
+  // Avatar URL: the backend stores it (Telegram photo saved at login, or a custom
+  // upload). PHOTO_KEY caches the last known URL so it shows instantly on launch,
+  // before loadFromServer resolves; the server value is the source of truth.
+  const avatarUrl = ref<string | null>(read(PHOTO_KEY))
   const loading = ref(false)
   const userId = ref<number | null>(null)
   const regionName = ref<string | null>(null)
@@ -66,6 +69,11 @@ export const useProfileStore = defineStore('profile', () => {
       const profile: UserProfile = await getUserProfile()
       userId.value = profile.id
       regionName.value = profile.region_name
+      // Server is the source of truth for the avatar (may be null if the user has
+      // no Telegram photo and never uploaded one — consumers then fall back to the
+      // cached Telegram photo_url).
+      avatarUrl.value = profile.avatar_url
+      write(PHOTO_KEY, profile.avatar_url)
       if (profile.city_id && profile.city_name) {
         // DB is the source of truth — the backend builds the feed from it.
         setCity({ id: profile.city_id, name: profile.city_name, regionId: null }, false)
@@ -136,20 +144,40 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
-  /** Override avatar (data URL); null clears it → back to Telegram photo. */
-  function setPhoto(value: string | null) {
-    customPhoto.value = value
-    write(PHOTO_KEY, value)
+  /** Upload a custom avatar to the backend; updates avatarUrl from the response. */
+  async function uploadAvatar(file: File): Promise<boolean> {
+    try {
+      const p = await uploadUserAvatar(file)
+      avatarUrl.value = p.avatar_url
+      write(PHOTO_KEY, p.avatar_url)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** Clear the custom avatar on the backend (empty string → NULL). Falls back to
+   *  the Telegram photo (re-saved on the next login). */
+  async function resetAvatar(): Promise<void> {
+    avatarUrl.value = null
+    write(PHOTO_KEY, null)
+    if (isLoggedIn()) {
+      try {
+        await updateUserProfile({ avatar_url: '' })
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   function clear() {
     city.value = null
     customName.value = null
-    customPhoto.value = null
+    avatarUrl.value = null
     localStorage.removeItem(CITY_KEY)
     localStorage.removeItem(NAME_KEY)
     localStorage.removeItem(PHOTO_KEY)
   }
 
-  return { city, cityId, cityName, regionId, customName, customPhoto, loading, userId, regionName, hasCity, setCity, setName, setPhoto, clear, loadFromServer }
+  return { city, cityId, cityName, regionId, customName, avatarUrl, loading, userId, regionName, hasCity, setCity, setName, uploadAvatar, resetAvatar, clear, loadFromServer }
 })

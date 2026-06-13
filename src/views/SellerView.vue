@@ -18,11 +18,13 @@ const { haptic } = useTelegram()
 const tg = useTelegramStore()
 const profile = useProfileStore()
 
-// Own seller profile → show your avatar (backend has no seller avatars yet).
-const sellerAvatar = computed(() =>
-  profile.userId != null && Number(props.id) === profile.userId
-    ? profile.customPhoto ?? tg.user?.photo_url ?? null
-    : null,
+// Avatar comes from the car detail (passed via ?avatar=…). For your own profile,
+// fall back to your freshly-set profile photo / Telegram avatar.
+const isSelf = computed(() => profile.userId != null && Number(props.id) === profile.userId)
+const sellerAvatar = computed(
+  () =>
+    (route.query.avatar as string | undefined) ||
+    (isSelf.value ? profile.avatarUrl ?? tg.user?.photo_url ?? null : null),
 )
 // If the avatar URL fails to load (e.g. an expired Telegram photo link), fall
 // back to the initial instead of showing an empty circle.

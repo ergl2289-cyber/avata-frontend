@@ -98,14 +98,29 @@ export interface UserProfile {
   city_name: string | null
   region_name: string | null
   rating: number
+  avatar_url: string | null
 }
 
 export function getUserProfile(): Promise<UserProfile> {
   return request<UserProfile>('/api/users/me')
 }
 
-export function updateUserProfile(data: Partial<Pick<UserProfile, 'username' | 'first_name' | 'last_name' | 'phone' | 'city_id'>>): Promise<UserProfile> {
+export function updateUserProfile(data: Partial<Pick<UserProfile, 'username' | 'first_name' | 'last_name' | 'phone' | 'city_id' | 'avatar_url'>>): Promise<UserProfile> {
   return request<UserProfile>('/api/users/me', { method: 'PATCH', json: data })
+}
+
+/** Upload a custom avatar (multipart) → returns the updated profile with avatar_url. */
+export async function uploadUserAvatar(file: File): Promise<UserProfile> {
+  const token = getToken()
+  const form = new FormData()
+  form.append('file', file)
+  const resp = await fetch(`${API_URL}/api/users/me/avatar`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+  if (!resp.ok) throw new Error(`Avatar upload failed: ${resp.status}`)
+  return (await resp.json()) as UserProfile
 }
 
 export function setUserCity(cityId: number): Promise<UserProfile> {
@@ -219,6 +234,7 @@ export interface SellerInfo {
   last_name: string | null
   username: string | null
   rating: number
+  avatar_url: string | null
 }
 
 export interface TechnicalSpecs {

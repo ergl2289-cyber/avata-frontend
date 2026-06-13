@@ -112,13 +112,15 @@ const sellerInitials = computed(() =>
   (car.value?.seller.first_name?.[0] ?? '?').toUpperCase(),
 )
 const sellerId = computed(() => car.value?.seller.id ?? null)
-// The backend doesn't return seller avatars yet, but for your OWN listing we can
-// show your profile photo (custom upload or Telegram avatar).
 const isMyListing = computed(
   () => profile.userId != null && car.value?.seller.id === String(profile.userId),
 )
-const sellerAvatar = computed(() =>
-  isMyListing.value ? profile.customPhoto ?? tgStore.user?.photo_url ?? null : null,
+// Prefer the seller avatar the backend returns; for your OWN listing fall back to
+// your freshly-set profile photo / Telegram avatar.
+const sellerAvatar = computed(
+  () =>
+    car.value?.seller.avatar_url ??
+    (isMyListing.value ? profile.avatarUrl ?? tgStore.user?.photo_url ?? null : null),
 )
 const sellerRating = ref<number | null>(null)
 const sellerReviewCount = ref(0)
@@ -127,8 +129,12 @@ function openSeller() {
   const sid = sellerId.value
   if (!sid) return
   haptic('light')
-  // Pass the name through — the backend has no seller-profile endpoint yet.
-  router.push({ name: 'seller', params: { id: sid }, query: sellerName.value ? { name: sellerName.value } : {} })
+  // Pass name + avatar through — there's no seller-profile endpoint, so the
+  // SellerView hero reuses what we already have from the car detail.
+  const query: Record<string, string> = {}
+  if (sellerName.value) query.name = sellerName.value
+  if (car.value?.seller.avatar_url) query.avatar = car.value.seller.avatar_url
+  router.push({ name: 'seller', params: { id: sid }, query })
 }
 
 /** Show the toggle only when the collapsed text is actually clipped. */

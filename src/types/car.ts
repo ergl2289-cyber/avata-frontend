@@ -39,6 +39,7 @@ export interface SellerUser {
   first_name: string
   last_name: string | null
   city: City | null
+  avatar_url: string | null
 }
 
 /* ----------------------------------------------------------------------------

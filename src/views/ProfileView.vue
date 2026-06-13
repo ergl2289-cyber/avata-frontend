@@ -23,7 +23,7 @@ const cityOpen = ref(false)
 const editOpen = ref(false)
 
 const displayName = computed(() => profile.customName || tg.fullName || 'Профиль')
-const avatar = computed(() => profile.customPhoto || tg.user?.photo_url || null)
+const avatar = computed(() => profile.avatarUrl || tg.user?.photo_url || null)
 const username = computed(() => tg.user?.username ?? null)
 const idText = computed(() => (tg.user ? String(tg.user.telegram_id) : '—'))
 const initials = computed(() => (tg.user?.first_name?.[0] ?? '?').toUpperCase())

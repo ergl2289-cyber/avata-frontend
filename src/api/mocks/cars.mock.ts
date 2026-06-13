@@ -38,7 +38,7 @@ const seller = (
   username: string | null,
   first_name: string,
   cityId: number,
-) => ({ id, tg_id, username, first_name, last_name: null, city: city(cityId) })
+) => ({ id, tg_id, username, first_name, last_name: null, city: city(cityId), avatar_url: null })
 
 /**
  * Full mock dataset (CarDetail shape). The mock resolver projects these down to

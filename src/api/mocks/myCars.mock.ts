@@ -30,6 +30,7 @@ export const me = {
   first_name: 'Я',
   last_name: null,
   city: city(1),
+  avatar_url: null,
 }
 
 /**
