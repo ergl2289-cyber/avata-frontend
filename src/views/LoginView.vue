@@ -87,6 +87,12 @@ function openApp() {
       </div>
 
       <p class="max-w-xs text-center text-[13px] leading-relaxed text-text-faint">
+        Нажимая «Войти через Telegram», вы соглашаетесь с
+        <RouterLink to="/privacy" class="text-text-muted underline underline-offset-2 transition-colors active:text-text">
+          Политикой конфиденциальности</RouterLink>.
+      </p>
+
+      <p class="max-w-xs text-center text-[13px] leading-relaxed text-text-faint">
         В браузере — войдите через Telegram (на телефоне подтвердите вход, на компьютере отсканируйте QR-код).
         Если вы открыли ссылку внутри Telegram — нажмите «Открыть приложение».
       </p>

@@ -25,6 +25,10 @@ watch(() => tg.isAuthenticated, async (authed) => {
 
 const showTabBar = computed(() => !route.meta.hideTabBar && !keyboardOpen.value)
 
+// Public routes (e.g. the privacy policy) render before/without auth — the consent
+// link on the login screen must be reachable without being logged in.
+const isPublic = computed(() => route.meta.public === true)
+
 const KEEP_ALIVE_VIEWS = ['HomeView', 'FavoritesView', 'MyListingsView', 'ProfileView']
 
 // Home ↔ Search should feel like one screen: skip the page fade between them so
@@ -44,8 +48,12 @@ watch(
 
 <template>
   <div class="relative min-h-dvh bg-bg text-text">
+    <!-- Public route (privacy policy) — render without the auth gate -->
+    <RouterView v-if="isPublic" v-slot="{ Component }">
+      <component :is="Component" />
+    </RouterView>
     <!-- Auth loading — only when we have initData (Telegram) and are authenticating -->
-    <div v-if="tg.initData && tg.authLoading && !tg.isAuthenticated" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
+    <div v-else-if="tg.initData && tg.authLoading && !tg.isAuthenticated" class="flex min-h-dvh flex-col items-center justify-center gap-4 px-4">
       <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       <p class="text-sm text-text-muted">Входим…</p>
     </div>
