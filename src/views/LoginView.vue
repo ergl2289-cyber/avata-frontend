@@ -87,9 +87,12 @@ function openApp() {
       </div>
 
       <p class="max-w-xs text-center text-[13px] leading-relaxed text-text-faint">
-        Нажимая «Войти через Telegram», вы соглашаетесь с
+        Нажимая «Войти через Telegram», вы принимаете
+        <RouterLink to="/terms" class="text-text-muted underline underline-offset-2 transition-colors active:text-text">
+          Пользовательское соглашение</RouterLink>
+        и
         <RouterLink to="/privacy" class="text-text-muted underline underline-offset-2 transition-colors active:text-text">
-          Политикой конфиденциальности</RouterLink>.
+          Политику конфиденциальности</RouterLink>.
       </p>
 
       <p class="max-w-xs text-center text-[13px] leading-relaxed text-text-faint">

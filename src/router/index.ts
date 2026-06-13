@@ -56,6 +56,12 @@ const routes: RouteRecordRaw[] = [
     meta: { hideTabBar: true, public: true },
   },
   {
+    path: '/terms',
+    name: 'terms',
+    component: () => import('@/views/TermsView.vue'),
+    meta: { hideTabBar: true, public: true },
+  },
+  {
     path: '/dev/api-test',
     name: 'apiTest',
     component: () => import('@/views/ApiTestView.vue'),

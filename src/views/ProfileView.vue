@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import WebApp from '@twa-dev/sdk'
-import { MoreHorizontal, ChevronRight, MapPin, Pencil, LogOut, ShieldCheck } from 'lucide-vue-next'
+import { MoreHorizontal, ChevronRight, MapPin, Pencil, LogOut, ShieldCheck, FileText } from 'lucide-vue-next'
 import CenterDialog from '@/components/ui/CenterDialog.vue'
 import CityPickerSheet from '@/components/geo/CityPickerSheet.vue'
 import EditProfileSheet from '@/components/profile/EditProfileSheet.vue'
@@ -173,17 +173,31 @@ function deleteAccount() {
 
     <!-- Legal -->
     <section class="px-4 pt-4">
-      <RouterLink
-        to="/privacy"
-        class="flex items-center justify-between rounded-card bg-surface px-4 py-3 transition-colors active:bg-surface-2"
-        @click="haptic('light')"
-      >
-        <span class="flex items-center gap-3">
-          <ShieldCheck :size="18" :stroke-width="1.8" class="text-text-muted" />
-          <span class="text-[15px] text-text">Политика конфиденциальности</span>
-        </span>
-        <ChevronRight :size="18" class="text-text-muted" />
-      </RouterLink>
+      <div class="overflow-hidden rounded-card bg-surface">
+        <RouterLink
+          to="/terms"
+          class="flex items-center justify-between px-4 py-3 transition-colors active:bg-surface-2"
+          @click="haptic('light')"
+        >
+          <span class="flex items-center gap-3">
+            <FileText :size="18" :stroke-width="1.8" class="text-text-muted" />
+            <span class="text-[15px] text-text">Пользовательское соглашение</span>
+          </span>
+          <ChevronRight :size="18" class="text-text-muted" />
+        </RouterLink>
+        <div class="mx-4 h-px bg-border" />
+        <RouterLink
+          to="/privacy"
+          class="flex items-center justify-between px-4 py-3 transition-colors active:bg-surface-2"
+          @click="haptic('light')"
+        >
+          <span class="flex items-center gap-3">
+            <ShieldCheck :size="18" :stroke-width="1.8" class="text-text-muted" />
+            <span class="text-[15px] text-text">Политика конфиденциальности</span>
+          </span>
+          <ChevronRight :size="18" class="text-text-muted" />
+        </RouterLink>
+      </div>
     </section>
 
     <!-- Delete account: centered minimalist dialog -->
