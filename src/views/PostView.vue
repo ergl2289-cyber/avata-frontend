@@ -14,12 +14,15 @@ import { useMyListingsStore, detailToForm } from '@/stores/myListings'
 import { getCarById, backend } from '@/api/cars.service'
 import { BOOST_DEFAULT_TARIFF } from '@/api/backend'
 import { useTelegram } from '@/composables/useTelegram'
+import { useProfileStore } from '@/stores/profile'
+import { MOSCOW_ONLY } from '@/config'
 import type { CarDetail } from '@/types/car'
 
 const props = defineProps<{ draftId: string | null; carId: number | null }>()
 
 const router = useRouter()
 const store = useMyListingsStore()
+const profile = useProfileStore()
 const { haptic, notify } = useTelegram()
 
 // Edit mode: prefill from an existing published listing instead of a draft.
@@ -57,7 +60,10 @@ const steps = computed(() => {
     { component: markRaw(StepBrandModel), title: 'Марка и модель', subtitle: 'Выберите марку и модель', valid: () => form.brandId != null && form.modelId != null },
     { component: markRaw(StepSpecs), title: 'Характеристики', subtitle: 'Год и пробег обязательны', valid: () => !!form.year && form.mileage != null },
     { component: markRaw(StepPrice), title: 'Укажите цену', subtitle: '', valid: () => form.price != null && form.price > 0 },
-    { component: markRaw(StepCity), title: 'Город', subtitle: 'Где находится автомобиль', valid: () => form.cityId != null },
+    // Moscow-only launch: no city step — the city is assigned automatically on publish.
+    ...(MOSCOW_ONLY
+      ? []
+      : [{ component: markRaw(StepCity), title: 'Город', subtitle: 'Где находится автомобиль', valid: () => form.cityId != null }]),
     { component: markRaw(StepDescription), title: 'Описание', subtitle: 'Необязательно, но помогает продать', valid: () => true },
   ]
   // Promotion upsell is offered only for new listings (not when editing).
@@ -170,6 +176,11 @@ function goToListings() {
 }
 
 async function publish() {
+  // Moscow-only launch: no city step — assign the single city before publishing.
+  if (MOSCOW_ONLY && form.cityId == null) {
+    await profile.ensureDefaultCity()
+    form.cityId = profile.cityId
+  }
   if (submitting.value || !ensureValid()) return
   submitting.value = true
   errorMsg.value = ''

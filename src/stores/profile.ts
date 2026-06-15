@@ -2,7 +2,9 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { City } from '@/types/car'
 import { getUserProfile, updateUserProfile, setUserCity, uploadUserAvatar, type UserProfile } from '@/api/backend'
+import { getCities } from '@/api/geo.service'
 import { isLoggedIn } from '@/api/auth'
+import { MOSCOW_ONLY, SINGLE_CITY_NAME } from '@/config'
 import { useTelegramStore, recallPhoto } from './telegram'
 
 const CITY_KEY = 'avata:city'
@@ -87,6 +89,11 @@ export const useProfileStore = defineStore('profile', () => {
           /* keep local city; will retry on next launch */
         }
       }
+      // Moscow-only launch: there's no city picker — assign the single city so the
+      // region feed and new listings have one.
+      if (MOSCOW_ONLY && !city.value) {
+        await ensureDefaultCity()
+      }
       // In browser mode (no initData) — populate telegram user from server data.
       // The backend doesn't store the avatar, so reuse the photo_url we cached at
       // login (recallPhoto) instead of nulling it → the avatar survives a refresh.
@@ -117,6 +124,21 @@ export const useProfileStore = defineStore('profile', () => {
     }
     if (regionId == null) {
       loadRegionForCity(value.id)
+    }
+  }
+
+  /**
+   * Moscow-only launch: pick the single available city (Москва, or the first one
+   * the backend returns) and store it. No-op once a city is set or the flag is off.
+   */
+  async function ensureDefaultCity() {
+    if (!MOSCOW_ONLY || city.value) return
+    try {
+      const list = (await getCities()).data
+      const only = list.find((c) => c.name === SINGLE_CITY_NAME) ?? list[0]
+      if (only) setCity(only)
+    } catch {
+      /* offline / backend down — retry on next launch */
     }
   }
 
@@ -179,5 +201,5 @@ export const useProfileStore = defineStore('profile', () => {
     localStorage.removeItem(PHOTO_KEY)
   }
 
-  return { city, cityId, cityName, regionId, customName, avatarUrl, loading, userId, regionName, hasCity, setCity, setName, uploadAvatar, resetAvatar, clear, loadFromServer }
+  return { city, cityId, cityName, regionId, customName, avatarUrl, loading, userId, regionName, hasCity, setCity, ensureDefaultCity, setName, uploadAvatar, resetAvatar, clear, loadFromServer }
 })

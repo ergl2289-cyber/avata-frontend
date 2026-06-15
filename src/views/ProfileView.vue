@@ -9,6 +9,7 @@ import EditProfileSheet from '@/components/profile/EditProfileSheet.vue'
 import { useTelegramStore } from '@/stores/telegram'
 import { useProfileStore } from '@/stores/profile'
 import { useTelegram } from '@/composables/useTelegram'
+import { MOSCOW_ONLY, SINGLE_CITY_NAME } from '@/config'
 import type { City } from '@/types/car'
 
 defineOptions({ name: 'ProfileView' })
@@ -137,7 +138,13 @@ function deleteAccount() {
         </div>
 
         <div class="mx-4 h-px bg-border" />
+        <!-- Moscow-only launch: city is fixed, show it as a static row. -->
+        <div v-if="MOSCOW_ONLY" class="px-4 py-3">
+          <p class="text-[13px] text-text-muted">Город</p>
+          <p class="mt-0.5 text-[15px] text-text">{{ SINGLE_CITY_NAME }}</p>
+        </div>
         <button
+          v-else
           type="button"
           class="flex w-full items-center justify-between px-4 py-3 text-left transition-colors active:bg-surface-2"
           @click="cityOpen = true"

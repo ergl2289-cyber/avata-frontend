@@ -15,6 +15,7 @@ import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
 import { useTelegramStore } from '@/stores/telegram'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
+import { MOSCOW_ONLY, SINGLE_CITY_NAME } from '@/config'
 import type { City } from '@/types/car'
 
 defineOptions({ name: 'HomeView' })
@@ -48,7 +49,11 @@ async function feelingLucky() {
 const isBrowser = computed(() => !tg.initData)
 
 const searchPlaceholder = computed(() =>
-  profile.cityName ? `Поиск в ${profile.cityName}` : 'Поиск по объявлениям',
+  MOSCOW_ONLY
+    ? `Поиск по ${SINGLE_CITY_NAME}`
+    : profile.cityName
+      ? `Поиск в ${profile.cityName}`
+      : 'Поиск по объявлениям',
 )
 
 const { sentinel } = useInfiniteScroll(() => cars.loadMore())
@@ -76,9 +81,12 @@ function onCityPicked(city: City) {
 }
 
 onMounted(() => {
-  // No city yet (incl. fresh Telegram users) → prompt, so it's saved to the DB
-  // profile, which the backend uses to build the region feed.
-  if (!profile.hasCity) {
+  if (MOSCOW_ONLY) {
+    // Single-city launch: no picker — make sure the city (Москва) is assigned.
+    profile.ensureDefaultCity()
+  } else if (!profile.hasCity) {
+    // No city yet (incl. fresh Telegram users) → prompt, so it's saved to the DB
+    // profile, which the backend uses to build the region feed.
     cityPickerOpen.value = true
   }
   cars.reload()
@@ -129,18 +137,18 @@ onMounted(() => {
       </div>
     </header>
 
-    <!-- Browser: city picker -->
-    <div v-if="isBrowser && !profile.hasCity" class="flex flex-col items-center gap-4 px-8 py-20 text-center">
+    <!-- Browser: city picker (disabled while launching Moscow-only) -->
+    <div v-if="!MOSCOW_ONLY && isBrowser && !profile.hasCity" class="flex flex-col items-center gap-4 px-8 py-20 text-center">
       <MapPin :size="40" class="text-text-muted" />
       <p class="text-[15px] text-text">Выберите город, чтобы видеть объявления</p>
       <button class="rounded-pill bg-primary px-6 py-2.5 text-sm font-medium text-white" @click="cityPickerOpen = true">
         Выбрать город
       </button>
     </div>
-    <CityPickerSheet :open="cityPickerOpen" :selected-id="profile.cityId" @update:open="cityPickerOpen = $event" @select="onCityPicked" />
+    <CityPickerSheet v-if="!MOSCOW_ONLY" :open="cityPickerOpen" :selected-id="profile.cityId" @update:open="cityPickerOpen = $event" @select="onCityPicked" />
 
     <!-- Feed (only when city selected or in Telegram) -->
-    <PullToRefresh v-if="!isBrowser || profile.hasCity" :on-refresh="onRefresh">
+    <PullToRefresh v-if="MOSCOW_ONLY || !isBrowser || profile.hasCity" :on-refresh="onRefresh">
     <section class="px-4 pt-1">
       <!-- First load skeletons -->
       <div v-if="cars.loading" class="grid grid-cols-2 gap-x-3 gap-y-5">

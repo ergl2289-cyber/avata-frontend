@@ -6,6 +6,7 @@ import PickerField from '@/components/ui/PickerField.vue'
 import OptionPickerSheet from '@/components/ui/OptionPickerSheet.vue'
 import { getBrands, getModels } from '@/api/catalog.service'
 import { getCities } from '@/api/geo.service'
+import { MOSCOW_ONLY } from '@/config'
 import { useFiltersStore } from '@/stores/filters'
 import { useTelegram } from '@/composables/useTelegram'
 import type { CarBrand, CarModel, City } from '@/types/car'
@@ -69,7 +70,8 @@ const cityGroups = computed(() => {
 
 async function ensureData() {
   if (!brands.value.length) brands.value = (await getBrands()).data
-  if (!cities.value.length) cities.value = (await getCities()).data
+  // Moscow-only launch: no city filter, skip loading the city list.
+  if (!MOSCOW_ONLY && !cities.value.length) cities.value = (await getCities()).data
   await loadModels()
 }
 
@@ -196,7 +198,7 @@ function onApply() {
       </div>
 
       <!-- City -->
-      <label class="block">
+      <label v-if="!MOSCOW_ONLY" class="block">
         <span class="mb-1.5 block text-[13px] text-text-muted">Город</span>
         <div class="relative">
           <select
