@@ -1,43 +1,20 @@
 import type { City, Region } from '@/types/car'
 
 /**
- * Mock geography. Regions exist for the three areas that use a two-level
- * (region -> city) picker: Москва, Санкт-Петербург, Краснодарский край.
- * All other major cities select directly (region is still present as a parent
- * for Directus shape parity, but the UI treats them as a single-level choice).
+ * Mock geography (dev only — production reads cities from the FastAPI backend).
+ * Flat list, no region/district grouping: the picker shows cities directly,
+ * matching the millionnik-cities launch model.
  */
 
-export const regionsMock: Region[] = [
-  { id: 1, name: 'Москва и область' },
-  { id: 2, name: 'Санкт-Петербург и область' },
-  { id: 3, name: 'Краснодарский край' },
-]
+export const regionsMock: Region[] = []
 
-const r = (id: number): Region | null => regionsMock.find((x) => x.id === id) ?? null
-
-/** 34 major Russian cities. Two-level regions get several child cities. */
+/** Major Russian cities, flat (region: null). Ids preserved for mock listings. */
 export const citiesMock: City[] = [
-  // --- Москва и область (two-level) ---
-  { id: 1, name: 'Москва', region: r(1) },
-  { id: 2, name: 'Химки', region: r(1) },
-  { id: 3, name: 'Подольск', region: r(1) },
-  { id: 4, name: 'Балашиха', region: r(1) },
-  { id: 5, name: 'Мытищи', region: r(1) },
-
-  // --- Санкт-Петербург и область (two-level) ---
-  { id: 6, name: 'Санкт-Петербург', region: r(2) },
-  { id: 7, name: 'Пушкин', region: r(2) },
-  { id: 8, name: 'Гатчина', region: r(2) },
-  { id: 9, name: 'Выборг', region: r(2) },
-
-  // --- Краснодарский край (two-level) ---
-  { id: 10, name: 'Краснодар', region: r(3) },
-  { id: 11, name: 'Сочи', region: r(3) },
-  { id: 12, name: 'Новороссийск', region: r(3) },
-  { id: 13, name: 'Анапа', region: r(3) },
-  { id: 14, name: 'Армавир', region: r(3) },
-
-  // --- Single-level cities ---
+  { id: 1, name: 'Москва', region: null },
+  { id: 6, name: 'Санкт-Петербург', region: null },
+  { id: 10, name: 'Краснодар', region: null },
+  { id: 11, name: 'Сочи', region: null },
+  { id: 12, name: 'Новороссийск', region: null },
   { id: 15, name: 'Новосибирск', region: null },
   { id: 16, name: 'Екатеринбург', region: null },
   { id: 17, name: 'Казань', region: null },
@@ -51,14 +28,5 @@ export const citiesMock: City[] = [
   { id: 25, name: 'Воронеж', region: null },
   { id: 26, name: 'Пермь', region: null },
   { id: 27, name: 'Волгоград', region: null },
-  { id: 28, name: 'Саратов', region: null },
-  { id: 29, name: 'Тюмень', region: null },
-  { id: 30, name: 'Тольятти', region: null },
-  { id: 31, name: 'Ижевск', region: null },
-  { id: 32, name: 'Барнаул', region: null },
-  { id: 33, name: 'Иркутск', region: null },
   { id: 34, name: 'Хабаровск', region: null },
 ]
-
-/** Two-level region ids (UI shows region -> city drill-down for these). */
-export const twoLevelRegionIds = [1, 2, 3]

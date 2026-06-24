@@ -1,49 +1,36 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ChevronRight, ChevronLeft, Check } from 'lucide-vue-next'
+import { Check, Search, X } from 'lucide-vue-next'
 import BottomSheet from '@/components/ui/BottomSheet.vue'
 import { getCities } from '@/api/geo.service'
-import type { City, Region } from '@/types/car'
+import type { City } from '@/types/car'
 import { useTelegram } from '@/composables/useTelegram'
 
 const props = defineProps<{ open: boolean; selectedId: number | null }>()
 const emit = defineEmits<{ 'update:open': [v: boolean]; select: [city: City] }>()
 
-const { selection, haptic } = useTelegram()
+const { haptic } = useTelegram()
 
 const cities = ref<City[]>([])
-const drill = ref<Region | null>(null)
+const query = ref('')
 
-const regions = computed(() => {
-  const map = new Map<number, Region>()
-  for (const c of cities.value) if (c.region) map.set(c.region.id, c.region)
-  return [...map.values()]
+// Flat, searchable list of cities (millionniki). No region/district drill-down.
+const filtered = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  const list = [...cities.value].sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  return q ? list.filter((c) => c.name.toLowerCase().includes(q)) : list
 })
-const flatCities = computed(() => cities.value.filter((c) => !c.region))
-const drilledCities = computed(() =>
-  drill.value ? cities.value.filter((c) => c.region?.id === drill.value!.id) : [],
-)
-
-const title = computed(() => drill.value?.name ?? 'Выберите город')
 
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
-      drill.value = null
+      query.value = ''
       if (!cities.value.length) cities.value = (await getCities()).data
     }
   },
 )
 
-function openRegion(r: Region) {
-  selection()
-  drill.value = r
-}
-function back() {
-  selection()
-  drill.value = null
-}
 function choose(c: City) {
   haptic('light')
   emit('select', c)
@@ -52,93 +39,45 @@ function choose(c: City) {
 </script>
 
 <template>
-  <BottomSheet :open="open" @update:open="emit('update:open', $event)">
-    <template #header>
-      <div class="relative flex h-7 items-center justify-center">
-        <button
-          v-if="drill"
-          type="button"
-          aria-label="Назад"
-          class="absolute left-0 flex h-7 w-7 items-center justify-center rounded-full text-text active:scale-90"
-          @click="back"
-        >
-          <ChevronLeft :size="22" />
-        </button>
-        <h2 class="text-[16px] font-semibold text-text">{{ title }}</h2>
-      </div>
-    </template>
+  <BottomSheet :open="open" title="Выберите город" @update:open="emit('update:open', $event)">
+    <!-- Search -->
+    <div class="relative mb-2">
+      <Search :size="18" class="pointer-events-none absolute left-3.5 top-3 text-text-muted" />
+      <input
+        v-model="query"
+        type="search"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        placeholder="Поиск города"
+        class="w-full rounded-xl bg-surface-2 py-2.5 pl-10 pr-9 text-[15px] text-text placeholder:text-text-muted outline-none"
+      />
+      <button
+        v-if="query"
+        type="button"
+        aria-label="Очистить"
+        class="absolute right-2.5 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-muted active:scale-90"
+        @click="query = ''"
+      >
+        <X :size="16" />
+      </button>
+    </div>
 
-    <!-- Fixed height keeps the sheet from jumping in size between levels -->
-    <div class="no-scrollbar h-[56dvh] overflow-y-auto">
-      <Transition :name="drill ? 'level-fwd' : 'level-back'" mode="out-in">
-        <div :key="drill ? drill.id : 'root'">
-          <!-- Drilled: cities of a region -->
-          <template v-if="drill">
-            <button
-              v-for="c in drilledCities"
-              :key="c.id"
-              type="button"
-              class="flex w-full items-center justify-between border-b border-border/60 py-3.5 text-left active:opacity-70"
-              @click="choose(c)"
-            >
-              <span class="text-[15px] text-text">{{ c.name }}</span>
-              <Check v-if="selectedId === c.id" :size="18" class="text-text" />
-            </button>
-          </template>
-
-          <!-- Top level: regions (drill) + flat cities -->
-          <template v-else>
-            <button
-              v-for="r in regions"
-              :key="'r' + r.id"
-              type="button"
-              class="flex w-full items-center justify-between border-b border-border/60 py-3.5 text-left active:opacity-70"
-              @click="openRegion(r)"
-            >
-              <span class="text-[15px] text-text">{{ r.name }}</span>
-              <ChevronRight :size="18" class="text-text-muted" />
-            </button>
-            <button
-              v-for="c in flatCities"
-              :key="'c' + c.id"
-              type="button"
-              class="flex w-full items-center justify-between border-b border-border/60 py-3.5 text-left active:opacity-70"
-              @click="choose(c)"
-            >
-              <span class="text-[15px] text-text">{{ c.name }}</span>
-              <Check v-if="selectedId === c.id" :size="18" class="text-text" />
-            </button>
-          </template>
-        </div>
-      </Transition>
+    <!-- Fixed height keeps the sheet from jumping as the list filters -->
+    <div class="no-scrollbar h-[52dvh] overflow-y-auto">
+      <button
+        v-for="c in filtered"
+        :key="c.id"
+        type="button"
+        class="flex w-full items-center justify-between border-b border-border/60 py-3.5 text-left active:opacity-70"
+        @click="choose(c)"
+      >
+        <span class="text-[15px] text-text">{{ c.name }}</span>
+        <Check v-if="selectedId === c.id" :size="18" class="text-text" />
+      </button>
+      <p v-if="!filtered.length" class="py-10 text-center text-[14px] text-text-muted">
+        Город не найден
+      </p>
     </div>
   </BottomSheet>
 </template>
-
-<style scoped>
-.level-fwd-enter-active,
-.level-fwd-leave-active,
-.level-back-enter-active,
-.level-back-leave-active {
-  transition:
-    opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.level-fwd-enter-from {
-  opacity: 0;
-  transform: translateX(16px);
-}
-.level-fwd-leave-to {
-  opacity: 0;
-  transform: translateX(-16px);
-}
-.level-back-enter-from {
-  opacity: 0;
-  transform: translateX(-16px);
-}
-.level-back-leave-to {
-  opacity: 0;
-  transform: translateX(16px);
-}
-</style>
-

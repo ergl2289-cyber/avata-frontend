@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import { getCars } from '@/api/cars.service'
 import type { CarListItem, SortKey } from '@/types/car'
 import { useFiltersStore } from './filters'
-import { useProfileStore } from './profile'
 
 const PAGE_SIZE = 8
 
@@ -25,16 +24,16 @@ export const useSearchStore = defineStore('search', () => {
   const cursor = ref<number | null>(null) // real backend pagination
 
   const filtersStore = useFiltersStore()
-  const profileStore = useProfileStore()
 
   function params(off: number) {
+    // No regionId: the backend scopes by the user's profile city (city-first),
+    // unless an explicit city filter is set in filtersStore.
     return {
       limit: PAGE_SIZE,
       offset: off,
       cursor: cursor.value,
       sort: sort.value,
       ...filtersStore.filters,
-      regionId: profileStore.regionId,
       search: query.value.trim() || null,
     }
   }

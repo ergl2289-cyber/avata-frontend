@@ -52,21 +52,10 @@ const draft = reactive({
   cityId: null as number | null,
 })
 
-// group cities by region for the two-level regions; loose cities go ungrouped
-const cityGroups = computed(() => {
-  const groups: { region: string; items: City[] }[] = []
-  const loose: City[] = []
-  for (const c of cities.value) {
-    if (c.region) {
-      const g = groups.find((x) => x.region === c.region!.name)
-      if (g) g.items.push(c)
-      else groups.push({ region: c.region.name, items: [c] })
-    } else {
-      loose.push(c)
-    }
-  }
-  return { groups, loose }
-})
+// Flat, alphabetically-sorted city list (millionniki — no region grouping).
+const sortedCities = computed(() =>
+  [...cities.value].sort((a, b) => a.name.localeCompare(b.name, 'ru')),
+)
 
 async function ensureData() {
   if (!brands.value.length) brands.value = (await getBrands()).data
@@ -206,14 +195,7 @@ function onApply() {
             class="w-full appearance-none rounded-xl bg-surface-2 px-4 py-3 text-[15px] text-text outline-none"
           >
             <option :value="null">Любой</option>
-            <optgroup
-              v-for="g in cityGroups.groups"
-              :key="g.region"
-              :label="g.region"
-            >
-              <option v-for="c in g.items" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </optgroup>
-            <option v-for="c in cityGroups.loose" :key="c.id" :value="c.id">{{ c.name }}</option>
+            <option v-for="c in sortedCities" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
           <ChevronDown :size="18" class="pointer-events-none absolute right-3 top-3.5 text-text-muted" />
         </div>

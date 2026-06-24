@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import { getCars } from '@/api/cars.service'
 import type { CarListItem } from '@/types/car'
 import { useFiltersStore } from './filters'
-import { useProfileStore } from './profile'
 
 const PAGE_SIZE = 8
 
@@ -18,7 +17,6 @@ export const useCarsStore = defineStore('cars', () => {
   const cursor = ref<number | null>(null) // real backend pagination
 
   const filtersStore = useFiltersStore()
-  const profileStore = useProfileStore()
 
   /**
    * Advance pagination state from a response. Real backend → cursor (meta carries
@@ -45,12 +43,13 @@ export const useCarsStore = defineStore('cars', () => {
     cursor.value = null
     hasMore.value = true
     try {
+      // No regionId/cityId: the backend resolves the user's city from their profile
+      // and floats it to the top, then shows the rest (city-first feed).
       const res = await getCars({
         limit: PAGE_SIZE,
         offset: 0,
         cursor: null,
         ...filtersStore.filters,
-        regionId: profileStore.regionId,
       } as any)
       items.value = res.data
       advance(res)
@@ -71,7 +70,6 @@ export const useCarsStore = defineStore('cars', () => {
         offset: offset.value,
         cursor: cursor.value,
         ...filtersStore.filters,
-        regionId: profileStore.regionId,
       } as any)
       items.value = items.value.concat(res.data)
       advance(res)
