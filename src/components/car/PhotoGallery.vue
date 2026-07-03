@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ImageOff, Play } from 'lucide-vue-next'
+import { computed, defineAsyncComponent, ref } from 'vue'
+import { ImageOff } from 'lucide-vue-next'
+
+// Video.js подтягивается только когда в объявлении реально есть видео —
+// не раздуваем чанки экранов без него.
+const VideoPlayer = defineAsyncComponent(() => import('@/components/ui/VideoPlayer.vue'))
 
 const props = withDefaults(
   defineProps<{
@@ -22,8 +26,7 @@ const slideCount = computed(() => props.photos.length + (hasVideo.value ? 1 : 0)
 
 const current = ref(0)
 const track = ref<HTMLElement | null>(null)
-const videoEl = ref<HTMLVideoElement | null>(null)
-const playing = ref(false)
+const playerRef = ref<{ pause: () => void } | null>(null)
 
 // Native scroll-snap carousel; the active index follows the scroll position.
 function onScroll() {
@@ -31,17 +34,9 @@ function onScroll() {
   if (!el || !el.clientWidth) return
   current.value = Math.round(el.scrollLeft / el.clientWidth)
   // Swiping away from the video slide pauses it.
-  if (hasVideo.value && current.value !== 0 && playing.value) {
-    videoEl.value?.pause()
+  if (hasVideo.value && current.value !== 0) {
+    playerRef.value?.pause()
   }
-}
-
-function playVideo() {
-  const v = videoEl.value
-  if (!v) return
-  v.play().catch(() => {
-    /* autoplay restrictions — the native controls remain available */
-  })
 }
 </script>
 
@@ -54,32 +49,9 @@ function playVideo() {
       :class="ratioClass"
       @scroll.passive="onScroll"
     >
-      <!-- Video slide (first): poster with a play button → native player -->
+      <!-- Video slide (first): Video.js — единый плеер на всех платформах -->
       <div v-if="hasVideo" class="relative h-full w-full shrink-0 snap-center">
-        <video
-          ref="videoEl"
-          :src="videoUrl!"
-          :poster="videoPosterUrl ?? undefined"
-          playsinline
-          preload="none"
-          controls
-          class="h-full w-full object-cover"
-          @play="playing = true"
-          @pause="playing = false"
-        />
-        <button
-          v-if="!playing"
-          type="button"
-          aria-label="Смотреть видео"
-          class="absolute inset-0 flex items-center justify-center"
-          @click="playVideo"
-        >
-          <span
-            class="flex h-14 w-14 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform duration-fast ease-out-ios active:scale-90"
-          >
-            <Play :size="26" :stroke-width="2" class="ml-1" fill="currentColor" />
-          </span>
-        </button>
+        <VideoPlayer ref="playerRef" :src="videoUrl!" :poster="videoPosterUrl" />
       </div>
 
       <img
