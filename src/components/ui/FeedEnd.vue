@@ -1,18 +1,18 @@
 <script setup lang="ts">
 /**
- * End-of-feed marker: a small dot with hairlines fading out to the sides and a
- * soft caption. Shared by every infinite list (home feed, search results).
+ * End-of-feed marker: a small faint Avata logo as the feed's closing touch.
+ * Shared by every infinite list (home feed, search results).
  */
-withDefaults(defineProps<{ label?: string }>(), { label: 'Вы посмотрели всё' })
+import logoUrl from '@/assets/logo-avata.webp'
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-2.5 py-8">
-    <div class="flex w-full max-w-[220px] items-center gap-3">
-      <span class="h-px flex-1 bg-gradient-to-r from-transparent to-border" />
-      <span class="h-1 w-1 rounded-full bg-text-faint" />
-      <span class="h-px flex-1 bg-gradient-to-l from-transparent to-border" />
-    </div>
-    <p class="text-[13px] text-text-faint">{{ label }}</p>
+  <div class="flex justify-center py-10">
+    <img
+      :src="logoUrl"
+      alt=""
+      draggable="false"
+      class="w-16 select-none opacity-20"
+    />
   </div>
 </template>
