@@ -39,39 +39,70 @@ function probeDuration(f: File): Promise<number> {
   })
 }
 
-/** Grab the first frame as a data URL — the "title photo" of the clip. */
+/**
+ * Grab a frame as a data URL — the "title photo" of the clip. Two strategies
+ * race (first painted frame wins): requestVideoFrameCallback after play()
+ * (reliable in WebView, where a plain seek often yields a black canvas) and a
+ * seek to ~0.5s (frame 0 is commonly black). 8s safety timeout.
+ */
 function captureFrame(f: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(f)
     const v = document.createElement('video')
-    const fail = () => {
+    let settled = false
+    const cleanup = () => {
+      try {
+        v.pause()
+        v.removeAttribute('src')
+        v.load()
+      } catch {
+        /* ignore */
+      }
       URL.revokeObjectURL(url)
+    }
+    const fail = () => {
+      if (settled) return
+      settled = true
+      cleanup()
       reject(new Error('capture failed'))
     }
-    v.preload = 'auto'
-    v.muted = true
-    v.playsInline = true
-    v.onerror = fail
-    v.onloadeddata = () => {
-      try {
-        v.currentTime = Math.min(0.1, v.duration || 0.1)
-      } catch {
-        fail()
-      }
-    }
-    v.onseeked = () => {
+    const draw = () => {
+      if (settled || !v.videoWidth) return
       try {
         const c = document.createElement('canvas')
         c.width = v.videoWidth
         c.height = v.videoHeight
         c.getContext('2d')!.drawImage(v, 0, 0)
         const data = c.toDataURL('image/jpeg', 0.8)
-        URL.revokeObjectURL(url)
+        settled = true
+        cleanup()
         resolve(data)
       } catch {
         fail()
       }
     }
+    v.preload = 'auto'
+    v.muted = true
+    v.playsInline = true
+    v.onerror = fail
+    setTimeout(fail, 8000)
+    v.onloadedmetadata = () => {
+      const anyV = v as HTMLVideoElement & {
+        requestVideoFrameCallback?: (cb: () => void) => void
+      }
+      if (typeof anyV.requestVideoFrameCallback === 'function') {
+        anyV.requestVideoFrameCallback(() => draw())
+        v.play().catch(() => {
+          /* autoplay blocked — the seek path below still fires */
+        })
+      }
+      try {
+        v.currentTime = Math.min(0.5, (v.duration || 1) / 2)
+      } catch {
+        /* ignore — rVFC path may still succeed */
+      }
+    }
+    v.onseeked = () => draw()
     v.src = url
   })
 }

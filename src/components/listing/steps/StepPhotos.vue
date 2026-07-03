@@ -102,12 +102,13 @@ function remove(i: number) {
          hint below never falls off-screen. -->
     <p class="mb-3 mt-5 text-[15px] font-semibold text-text">Видео</p>
 
-    <!-- Picked (or existing) clip -->
+    <!-- Picked (or existing) clip: 16:9 tile, ~2/3 width so the hint stays on screen -->
     <div
       v-if="videoPreviewUrl || existingPosterUrl"
-      class="relative h-28 overflow-hidden rounded-card bg-surface"
+      class="relative aspect-video w-2/3 overflow-hidden rounded-card bg-surface"
     >
-      <!-- Title frame of the clip (like a photo thumbnail); <video> as fallback. -->
+      <!-- Title frame of the clip (like a photo thumbnail); <video> as fallback.
+           The #t=0.5 fragment makes the fallback show a real frame, not black. -->
       <img
         v-if="videoPreviewPosterUrl || existingPosterUrl"
         :src="(videoPreviewPosterUrl ?? existingPosterUrl)!"
@@ -116,10 +117,10 @@ function remove(i: number) {
       />
       <video
         v-else
-        :src="videoPreviewUrl!"
+        :src="videoPreviewUrl! + '#t=0.5'"
         muted
         playsinline
-        preload="metadata"
+        preload="auto"
         class="h-full w-full object-cover"
       />
       <span
@@ -137,11 +138,11 @@ function remove(i: number) {
       </button>
     </div>
 
-    <!-- Add tile -->
+    <!-- Add tile: same 16:9 shape as the preview -->
     <button
       v-else
       type="button"
-      class="flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-card bg-surface text-text-muted transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+      class="flex aspect-video w-2/3 flex-col items-center justify-center gap-1.5 rounded-card bg-surface text-text-muted transition-transform duration-fast ease-out-ios active:scale-[0.98]"
       @click="pickVideo"
     >
       <Video :size="26" :stroke-width="1.6" />
