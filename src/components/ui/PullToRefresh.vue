@@ -3,14 +3,16 @@ import { computed, ref } from 'vue'
 import { useTelegram } from '@/composables/useTelegram'
 
 /**
- * Pull-to-refresh wrapper (Avito-style), with a matching bounce at the bottom.
+ * Pull-to-refresh wrapper (Avito-style) — works on BOTH edges, identically.
  *
- * Top: when the page is at the top, a downward drag opens a gap, the spinner
- * floats centered in it, and — past the threshold — `onRefresh` runs.
+ * Top: at the top of the page, a downward drag opens a gap, the spinner floats
+ * centered in it, and — past the threshold — `onRefresh` runs while the spinner
+ * spins in the held-open gap, then everything springs back.
  *
- * Bottom: when the page is scrolled to the end, an upward drag past the last
- * card opens the same kind of gap with the same ring — purely a "you've hit
- * the end" bounce, it always springs back and never fires `onRefresh`.
+ * Bottom: exact mirror. When the page is scrolled to the end, an upward drag
+ * opens the same gap below the last card with the same ring; past the threshold
+ * it runs the same `onRefresh` (silent reload — the list stays in place, no
+ * jump to the top), spinner spins in the held gap, then springs back.
  *
  * Both use smooth exponential resistance, haptic at the threshold, gentle
  * spring-back.
@@ -34,9 +36,10 @@ const HOLD = 88 // gap height held while refreshing (room around the spinner)
 const SPIN = 26 // spinner box size (px)
 const DAMP = 150 // higher = looser/smoother resistance
 
-const offset = ref(0) // top gap height (content translateY)
-const bottomOffset = ref(0) // bottom gap height (bounce only, never triggers a load)
-const refreshing = ref(false)
+const offset = ref(0) // top gap height (content translateY down)
+const bottomOffset = ref(0) // bottom gap height (content translateY up)
+const refreshing = ref(false) // top refresh in progress
+const bottomRefreshing = ref(false) // bottom refresh in progress
 const dragging = ref(false)
 
 let startY = 0
@@ -52,10 +55,15 @@ const progress = computed(() => Math.min(1, offset.value / THRESHOLD))
 const bottomProgress = computed(() => Math.min(1, bottomOffset.value / THRESHOLD))
 // Keep the spinner centered in the opening gap → equal space above and below it.
 const spinnerY = computed(() => offset.value / 2 - SPIN / 2)
-const bottomSpinnerY = computed(() => -bottomOffset.value / 2 + SPIN / 2)
+const bottomSpinnerY = computed(() => -(bottomOffset.value / 2 - SPIN / 2))
 
 function onStart(e: TouchEvent) {
-  if (refreshing.value || props.disabled || e.touches.length !== 1) {
+  if (
+    refreshing.value ||
+    bottomRefreshing.value ||
+    props.disabled ||
+    e.touches.length !== 1
+  ) {
     armed = false
     return
   }
@@ -69,42 +77,33 @@ function onMove(e: TouchEvent) {
   if (!armed) return
   const dy = e.touches[0].clientY - startY
 
-  // First real movement decides the direction/mode for the rest of the gesture.
+  // First real movement decides the edge for the rest of the gesture.
   if (mode === null) {
     if (dy > 4 && atTop()) mode = 'top'
     else if (dy < -4 && atBottom()) mode = 'bottom'
     else return
   }
 
-  if (mode === 'top') {
-    if (dy <= 0 || !atTop()) {
-      if (!dragging.value) armed = false
-      return
-    }
-    offset.value = MAX * (1 - Math.exp(-dy / DAMP))
-    dragging.value = true
-    if (e.cancelable) e.preventDefault()
-    if (!passed && offset.value >= THRESHOLD) {
-      passed = true
-      haptic('light')
-    } else if (passed && offset.value < THRESHOLD) {
-      passed = false
-    }
-  } else {
-    const up = -dy
-    if (up <= 0 || !atBottom()) {
-      if (!dragging.value) armed = false
-      return
-    }
-    bottomOffset.value = MAX * (1 - Math.exp(-up / DAMP))
-    dragging.value = true
-    if (e.cancelable) e.preventDefault()
-    if (!passed && bottomOffset.value >= THRESHOLD) {
-      passed = true
-      haptic('light')
-    } else if (passed && bottomOffset.value < THRESHOLD) {
-      passed = false
-    }
+  // Mirror: top uses the downward distance, bottom the upward one.
+  const pull = mode === 'top' ? dy : -dy
+  const edgeStillActive = mode === 'top' ? atTop() : atBottom()
+  if (pull <= 0 || !edgeStillActive) {
+    if (!dragging.value) armed = false
+    return
+  }
+
+  // Exponential resistance: smoothly approaches MAX, never snaps.
+  const value = MAX * (1 - Math.exp(-pull / DAMP))
+  if (mode === 'top') offset.value = value
+  else bottomOffset.value = value
+  dragging.value = true
+  if (e.cancelable) e.preventDefault()
+
+  if (!passed && value >= THRESHOLD) {
+    passed = true
+    haptic('light')
+  } else if (passed && value < THRESHOLD) {
+    passed = false
   }
 }
 
@@ -113,24 +112,32 @@ async function onEnd() {
   armed = false
   dragging.value = false
 
-  if (mode === 'bottom') {
-    // Always a bounce — spring back, no refresh action.
-    bottomOffset.value = 0
-    mode = null
-    return
-  }
-
-  if (offset.value >= THRESHOLD) {
-    refreshing.value = true
-    offset.value = HOLD
-    try {
-      await props.onRefresh()
-    } finally {
-      refreshing.value = false
+  if (mode === 'top') {
+    if (offset.value >= THRESHOLD) {
+      refreshing.value = true
+      offset.value = HOLD
+      try {
+        await props.onRefresh()
+      } finally {
+        refreshing.value = false
+        offset.value = 0
+      }
+    } else {
       offset.value = 0
     }
-  } else {
-    offset.value = 0
+  } else if (mode === 'bottom') {
+    if (bottomOffset.value >= THRESHOLD) {
+      bottomRefreshing.value = true
+      bottomOffset.value = HOLD
+      try {
+        await props.onRefresh()
+      } finally {
+        bottomRefreshing.value = false
+        bottomOffset.value = 0
+      }
+    } else {
+      bottomOffset.value = 0
+    }
   }
   mode = null
 }
@@ -179,21 +186,24 @@ const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
       <slot />
     </div>
 
-    <!-- Bottom indicator (same ring, mirrored — bounce only, never spins/loads) -->
+    <!-- Bottom indicator (exact mirror of the top one) -->
     <div
       class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center"
       :style="{
         transform: `translate3d(0, ${bottomSpinnerY}px, 0)`,
-        opacity: bottomProgress,
+        opacity: bottomRefreshing ? 1 : bottomProgress,
         transition: dragging ? 'none' : `transform 0.4s ${ease}, opacity 0.25s ease`,
       }"
     >
       <span
         class="block rounded-full border-2 border-text-faint border-t-text"
+        :class="bottomRefreshing ? 'animate-spin' : ''"
         :style="{
           width: `${SPIN}px`,
           height: `${SPIN}px`,
-          transform: `rotate(${-bottomOffset * 3.2}deg) scale(${0.5 + 0.5 * bottomProgress})`,
+          transform: bottomRefreshing
+            ? 'none'
+            : `rotate(${-bottomOffset * 3.2}deg) scale(${0.5 + 0.5 * bottomProgress})`,
         }"
       />
     </div>
