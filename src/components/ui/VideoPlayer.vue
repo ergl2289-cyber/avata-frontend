@@ -98,23 +98,22 @@ defineExpose({ pause })
 
 /* Полноэкранный/full-window режим: полоса заметно выше и кнопки крупнее —
    на весь экран палец должен уверенно попадать, плюс отступ снизу под
-   safe-area (домашний индикатор iOS). */
-.avata-player .vjs-full-window .vjs-control-bar,
-.avata-player .video-js:fullscreen .vjs-control-bar {
+   safe-area (домашний индикатор iOS). preferFullWindow вешает класс
+   vjs-full-window на <body> (не на сам плеер!), поэтому селектор идёт
+   от body, а не от .avata-player. Нативный fullscreen (Android/desktop)
+   добавляет vjs-fullscreen прямо на .video-js. */
+body.vjs-full-window .vjs-control-bar,
+.avata-player .video-js.vjs-fullscreen .vjs-control-bar {
   height: 64px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
 }
-.avata-player .vjs-full-window .vjs-control-bar .vjs-control,
-.avata-player .video-js:fullscreen .vjs-control-bar .vjs-control {
+body.vjs-full-window .vjs-control-bar .vjs-control,
+.avata-player .video-js.vjs-fullscreen .vjs-control-bar .vjs-control {
   width: 4em;
 }
-.avata-player .vjs-full-window .vjs-control-bar .vjs-play-progress,
-.avata-player .video-js:fullscreen .vjs-control-bar .vjs-play-progress {
-  height: 100%;
-}
-.avata-player .vjs-full-window .vjs-progress-control,
-.avata-player .video-js:fullscreen .vjs-progress-control {
-  height: 1em;
+body.vjs-full-window .vjs-progress-control,
+.avata-player .video-js.vjs-fullscreen .vjs-progress-control {
+  height: 1.2em;
 }
 
 /* Прогресс и громкость — белые, как весь монохром */
