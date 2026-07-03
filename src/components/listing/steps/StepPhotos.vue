@@ -9,6 +9,7 @@ const props = defineProps<{ form: ListingForm }>()
 const { haptic } = useTelegram()
 const {
   videoPreviewUrl,
+  videoPreviewPosterUrl,
   videoError,
   existingPosterUrl,
   setVideo,
@@ -96,23 +97,31 @@ function remove(i: number) {
 
     <p class="mt-3 text-[13px] text-text-muted">До {{ MAX }} фото. Первое станет обложкой.</p>
 
-    <!-- Video (one clip; compressed server-side) -->
-    <p class="mb-3 mt-6 text-[15px] font-semibold text-text">Видео</p>
+    <!-- Video (one clip; compressed server-side). Same rhythm as the photos block:
+         semibold title, tiles, then a muted hint. Height kept compact (h-28) so the
+         hint below never falls off-screen. -->
+    <p class="mb-3 mt-5 text-[15px] font-semibold text-text">Видео</p>
 
     <!-- Picked (or existing) clip -->
     <div
       v-if="videoPreviewUrl || existingPosterUrl"
-      class="relative aspect-video overflow-hidden rounded-card bg-surface"
+      class="relative h-28 overflow-hidden rounded-card bg-surface"
     >
+      <!-- Title frame of the clip (like a photo thumbnail); <video> as fallback. -->
+      <img
+        v-if="videoPreviewPosterUrl || existingPosterUrl"
+        :src="(videoPreviewPosterUrl ?? existingPosterUrl)!"
+        alt=""
+        class="h-full w-full object-cover"
+      />
       <video
-        v-if="videoPreviewUrl"
-        :src="videoPreviewUrl"
+        v-else
+        :src="videoPreviewUrl!"
         muted
         playsinline
         preload="metadata"
         class="h-full w-full object-cover"
       />
-      <img v-else :src="existingPosterUrl!" alt="" class="h-full w-full object-cover" />
       <span
         class="pointer-events-none absolute bottom-2 left-2 rounded-pill bg-black/55 px-2 py-0.5 text-[12px] text-white backdrop-blur-md"
       >
@@ -132,7 +141,7 @@ function remove(i: number) {
     <button
       v-else
       type="button"
-      class="flex aspect-video w-full flex-col items-center justify-center gap-1.5 rounded-card bg-surface text-text-muted transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+      class="flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-card bg-surface text-text-muted transition-transform duration-fast ease-out-ios active:scale-[0.98]"
       @click="pickVideo"
     >
       <Video :size="26" :stroke-width="1.6" />
@@ -140,7 +149,7 @@ function remove(i: number) {
     </button>
 
     <p class="mt-3 text-[13px]" :class="videoError ? 'text-like' : 'text-text-muted'">
-      {{ videoError ?? `Одно видео до ${VIDEO_MAX_SECONDS} секунд и 100 МБ. Видео помогает продать быстрее.` }}
+      {{ videoError ?? `Одно видео до ${VIDEO_MAX_SECONDS} секунд и 100 МБ.` }}
     </p>
 
     <input

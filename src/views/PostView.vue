@@ -63,9 +63,23 @@ const errorMsg = ref('')
 
 const steps = computed(() => {
   const base = [
-    { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => true },
+    { component: markRaw(StepPhotos), title: 'Внешний вид', subtitle: 'Добавьте фотографии автомобиля', valid: () => form.photos.length > 0 },
     { component: markRaw(StepBrandModel), title: 'Марка и модель', subtitle: 'Выберите марку и модель', valid: () => form.brandId != null && form.modelId != null },
-    { component: markRaw(StepSpecs), title: 'Характеристики', subtitle: 'Год и пробег обязательны', valid: () => !!form.year && form.mileage != null },
+    {
+      component: markRaw(StepSpecs),
+      title: 'Характеристики',
+      subtitle: 'Все поля обязательны',
+      valid: () =>
+        !!form.year &&
+        form.mileage != null &&
+        !!form.bodyType &&
+        !!form.transmission &&
+        !!form.fuelType &&
+        !!form.driveType &&
+        form.engineVolume != null &&
+        form.enginePower != null &&
+        !!form.color?.trim(),
+    },
     { component: markRaw(StepPrice), title: 'Укажите цену', subtitle: '', valid: () => form.price != null && form.price > 0 },
     // Moscow-only launch: no city step — the city is assigned automatically on publish.
     ...(MOSCOW_ONLY

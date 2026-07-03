@@ -14,6 +14,7 @@ export const VIDEO_MAX_SECONDS = 60
 
 const file = ref<File | null>(null)
 const previewUrl = ref<string | null>(null) // object URL for the picked file
+const previewPosterUrl = ref<string | null>(null) // captured first frame (data URL)
 const error = ref<string | null>(null)
 /** Edit mode: poster of the already-uploaded video (shown until replaced/removed). */
 const existingPosterUrl = ref<string | null>(null)
@@ -38,6 +39,43 @@ function probeDuration(f: File): Promise<number> {
   })
 }
 
+/** Grab the first frame as a data URL — the "title photo" of the clip. */
+function captureFrame(f: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(f)
+    const v = document.createElement('video')
+    const fail = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('capture failed'))
+    }
+    v.preload = 'auto'
+    v.muted = true
+    v.playsInline = true
+    v.onerror = fail
+    v.onloadeddata = () => {
+      try {
+        v.currentTime = Math.min(0.1, v.duration || 0.1)
+      } catch {
+        fail()
+      }
+    }
+    v.onseeked = () => {
+      try {
+        const c = document.createElement('canvas')
+        c.width = v.videoWidth
+        c.height = v.videoHeight
+        c.getContext('2d')!.drawImage(v, 0, 0)
+        const data = c.toDataURL('image/jpeg', 0.8)
+        URL.revokeObjectURL(url)
+        resolve(data)
+      } catch {
+        fail()
+      }
+    }
+    v.src = url
+  })
+}
+
 async function setVideo(f: File): Promise<boolean> {
   error.value = null
   if (f.size > VIDEO_MAX_BYTES) {
@@ -57,6 +95,8 @@ async function setVideo(f: File): Promise<boolean> {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   file.value = f
   previewUrl.value = URL.createObjectURL(f)
+  // Best-effort title frame (like a photo thumbnail); <video> stays the fallback.
+  previewPosterUrl.value = await captureFrame(f).catch(() => null)
   // A new clip replaces the old one server-side, no separate delete needed.
   removeExisting.value = false
   existingPosterUrl.value = null
@@ -68,6 +108,7 @@ function clearVideo() {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   file.value = null
   previewUrl.value = null
+  previewPosterUrl.value = null
   error.value = null
   if (existingPosterUrl.value) {
     existingPosterUrl.value = null
@@ -80,6 +121,7 @@ function resetVideoState(posterUrl: string | null = null) {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   file.value = null
   previewUrl.value = null
+  previewPosterUrl.value = null
   error.value = null
   existingPosterUrl.value = posterUrl
   removeExisting.value = false
@@ -89,6 +131,7 @@ export function useListingVideo() {
   return {
     videoFile: file,
     videoPreviewUrl: previewUrl,
+    videoPreviewPosterUrl: previewPosterUrl,
     videoError: error,
     existingPosterUrl,
     removeExisting,

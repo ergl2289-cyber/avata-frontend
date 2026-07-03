@@ -54,28 +54,28 @@ const drives: { value: DriveType; label: string }[] = [
     </div>
 
     <div>
-      <p class="mb-2 text-[13px] text-text-muted">Тип кузова</p>
+      <p class="mb-2 text-[13px] text-text-muted">Тип кузова <span class="text-like">*</span></p>
       <ChipGroup v-model="form.bodyType" :options="bodyTypes" />
     </div>
 
     <div>
-      <p class="mb-2 text-[13px] text-text-muted">Коробка передач</p>
+      <p class="mb-2 text-[13px] text-text-muted">Коробка передач <span class="text-like">*</span></p>
       <ChipGroup v-model="form.transmission" :options="transmissions" />
     </div>
 
     <div>
-      <p class="mb-2 text-[13px] text-text-muted">Тип топлива</p>
+      <p class="mb-2 text-[13px] text-text-muted">Тип топлива <span class="text-like">*</span></p>
       <ChipGroup v-model="form.fuelType" :options="fuels" />
     </div>
 
     <div>
-      <p class="mb-2 text-[13px] text-text-muted">Привод</p>
+      <p class="mb-2 text-[13px] text-text-muted">Привод <span class="text-like">*</span></p>
       <ChipGroup v-model="form.driveType" :options="drives" />
     </div>
 
     <div class="flex gap-3">
       <label class="block flex-1">
-        <span class="mb-1.5 block text-[13px] text-text-muted">Объём, л</span>
+        <span class="mb-1.5 block text-[13px] text-text-muted">Объём, л <span class="text-like">*</span></span>
         <input
           v-model.number="form.engineVolume"
           type="number"
@@ -86,7 +86,7 @@ const drives: { value: DriveType; label: string }[] = [
         />
       </label>
       <label class="block flex-1">
-        <span class="mb-1.5 block text-[13px] text-text-muted">Мощность, л.с.</span>
+        <span class="mb-1.5 block text-[13px] text-text-muted">Мощность, л.с. <span class="text-like">*</span></span>
         <input
           v-model.number="form.enginePower"
           type="number"
@@ -98,7 +98,7 @@ const drives: { value: DriveType; label: string }[] = [
     </div>
 
     <label class="block">
-      <span class="mb-1.5 block text-[13px] text-text-muted">Цвет</span>
+      <span class="mb-1.5 block text-[13px] text-text-muted">Цвет <span class="text-like">*</span></span>
       <input
         v-model.trim="form.color"
         type="text"
