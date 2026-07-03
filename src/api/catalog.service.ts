@@ -40,7 +40,11 @@ export function sortBrandsPopularFirst(list: CarBrand[]): CarBrand[] {
   })
 }
 
-export function getBrands() {
+// Brand list is static per session → cache the promise so the filter sheet and
+// the listing wizard don't refetch it on every open.
+let _brands: Promise<DirectusListResponse<CarBrand>> | null = null
+
+function fetchBrands(): Promise<DirectusListResponse<CarBrand>> {
   if (USE_MOCKS) {
     return directusRequest<DirectusListResponse<CarBrand>>('/items/car_brands', {
       fields: ['id', 'name'],
@@ -49,6 +53,16 @@ export function getBrands() {
   return fetch(`${API_URL}/api/references/brands`)
     .then(r => r.json())
     .then(data => ({ data: sortBrandsPopularFirst(data as CarBrand[]) }))
+}
+
+export function getBrands() {
+  if (!_brands) {
+    _brands = fetchBrands().catch((e) => {
+      _brands = null // don't cache failures — retry on the next call
+      throw e
+    })
+  }
+  return _brands
 }
 
 /** Models, optionally narrowed to a single brand (for the filter sheet). */

@@ -2,9 +2,11 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import WebApp from '@twa-dev/sdk'
 import App from './App.vue'
-import { router } from './router'
+import { router, prefetchRoutes } from './router'
 import { useTelegramStore } from './stores/telegram'
 import { getToken } from './api/auth'
+import { getCities } from './api/geo.service'
+import { getBrands } from './api/catalog.service'
 import './style.css'
 
 // Telegram lifecycle. Single dark theme — we don't follow colorScheme.
@@ -59,6 +61,19 @@ tgStore.init()
   }
 
   app.mount('#app')
+
+  // Warm the remaining route chunks and the static references (cities, brands)
+  // once the browser is idle: the first tap on every tab and the first open of
+  // the filter/city sheets then happen without a network wait.
+  const idle: (cb: () => void) => void =
+    'requestIdleCallback' in window
+      ? (cb) => (window as any).requestIdleCallback(cb, { timeout: 2000 })
+      : (cb) => setTimeout(cb, 1500)
+  idle(() => {
+    prefetchRoutes()
+    getCities().catch(() => {})
+    getBrands().catch(() => {})
+  })
 
   // Deep link: Mini App launched via t.me/<bot>?startapp=car_<id> → open that
   // listing (carries the link target when opened from Telegram's in-app browser).

@@ -81,6 +81,22 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+/**
+ * Warm up the lazy route chunks in the background (called after the app mounts,
+ * when the browser is idle). Without this, the first tap on each tab pays a
+ * network round-trip for its JS chunk — with it, switching is instant.
+ */
+export function prefetchRoutes() {
+  for (const r of routes) {
+    const load = r.component
+    if (typeof load === 'function') {
+      ;(load as () => Promise<unknown>)().catch(() => {
+        /* offline / flaky network — the route will load on demand as before */
+      })
+    }
+  }
+}
+
 export const router = createRouter({
   history: createWebHistory(),
   routes,
