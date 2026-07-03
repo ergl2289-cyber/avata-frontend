@@ -9,6 +9,7 @@ import CarCardSkeleton from '@/components/car/CarCardSkeleton.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import CityPickerSheet from '@/components/geo/CityPickerSheet.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import FeedEnd from '@/components/ui/FeedEnd.vue'
 import PullToRefresh from '@/components/ui/PullToRefresh.vue'
 import { useCarsStore } from '@/stores/cars'
 import { useFiltersStore } from '@/stores/filters'
@@ -173,12 +174,7 @@ onMounted(() => {
         <div v-if="cars.loadingMore" class="flex justify-center py-4">
           <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
-        <p
-          v-else-if="!cars.hasMore"
-          class="py-6 text-center text-[13px] text-text-faint"
-        >
-          Больше объявлений нет
-        </p>
+        <FeedEnd v-else-if="!cars.hasMore" />
       </template>
     </section>
     </PullToRefresh>

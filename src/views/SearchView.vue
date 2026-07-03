@@ -6,6 +6,7 @@ import SearchResultCard from '@/components/car/SearchResultCard.vue'
 import FilterSheet from '@/components/car/FilterSheet.vue'
 import SortSheet from '@/components/car/SortSheet.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import FeedEnd from '@/components/ui/FeedEnd.vue'
 import { useSearchStore } from '@/stores/search'
 import { useFiltersStore } from '@/stores/filters'
 import { useProfileStore } from '@/stores/profile'
@@ -298,9 +299,7 @@ onMounted(() => {
         <div v-if="search.loadingMore" class="flex justify-center py-4">
           <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
-        <p v-else-if="!search.hasMore" class="py-6 text-center text-[13px] text-text-faint">
-          Больше объявлений нет
-        </p>
+        <FeedEnd v-else-if="!search.hasMore" />
       </template>
     </section>
 
