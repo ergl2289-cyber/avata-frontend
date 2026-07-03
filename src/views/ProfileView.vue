@@ -142,6 +142,7 @@ function deleteAccount() {
         <div v-if="MOSCOW_ONLY" class="px-4 py-3">
           <p class="text-[13px] text-text-muted">Город</p>
           <p class="mt-0.5 text-[15px] text-text">{{ SINGLE_CITY_NAME }}</p>
+          <p class="mt-0.5 text-[12px] text-text-faint">Пока доступна только Москва</p>
         </div>
         <button
           v-else
