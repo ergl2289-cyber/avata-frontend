@@ -168,8 +168,9 @@ onMounted(() => {
           <CarCard v-for="car in cars.items" :key="car.id" :car="car" />
         </div>
 
-        <!-- Load-more sentinel + spinner -->
-        <div ref="sentinel" class="h-10" />
+        <!-- Load-more sentinel + spinner. Same height as the gap between cards
+             (gap-y-5 = 20px), so the space below the last row matches. -->
+        <div ref="sentinel" class="h-5" />
         <div v-if="cars.loadingMore" class="flex justify-center py-4">
           <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
