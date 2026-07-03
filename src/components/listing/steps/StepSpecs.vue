@@ -97,14 +97,5 @@ const drives: { value: DriveType; label: string }[] = [
       </label>
     </div>
 
-    <label class="block">
-      <span class="mb-1.5 block text-[13px] text-text-muted">Цвет <span class="text-like">*</span></span>
-      <input
-        v-model.trim="form.color"
-        type="text"
-        placeholder="Чёрный"
-        class="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-text placeholder:text-text-faint outline-none"
-      />
-    </label>
   </div>
 </template>

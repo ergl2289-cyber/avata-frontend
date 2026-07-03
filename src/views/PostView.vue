@@ -77,8 +77,7 @@ const steps = computed(() => {
         !!form.fuelType &&
         !!form.driveType &&
         form.engineVolume != null &&
-        form.enginePower != null &&
-        !!form.color?.trim(),
+        form.enginePower != null,
     },
     { component: markRaw(StepPrice), title: 'Укажите цену', subtitle: '', valid: () => form.price != null && form.price > 0 },
     // Moscow-only launch: no city step — the city is assigned automatically on publish.
