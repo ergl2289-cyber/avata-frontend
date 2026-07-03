@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import SelectField from '@/components/ui/SelectField.vue'
 import { getCities } from '@/api/geo.service'
 import { useProfileStore } from '@/stores/profile'
+import { MOSCOW_ONLY, SINGLE_CITY_NAME } from '@/config'
 import type { City } from '@/types/car'
 import type { ListingForm } from '@/types/listing'
 
@@ -23,11 +24,20 @@ onMounted(async () => {
   if (props.form.cityId == null && profile.cityId != null) {
     props.form.cityId = profile.cityId
   }
+  // Moscow-only launch: no picker, force the single city onto the listing.
+  if (MOSCOW_ONLY && profile.cityId != null) {
+    props.form.cityId = profile.cityId
+  }
 })
 </script>
 
 <template>
-  <SelectField v-model="form.cityId" label="Город">
+  <!-- Moscow-only launch: city is fixed, show it as a static row (no picker). -->
+  <div v-if="MOSCOW_ONLY" class="rounded-xl bg-surface-2 px-4 py-3">
+    <span class="mb-0.5 block text-[13px] text-text-muted">Город</span>
+    <span class="block text-[15px] text-text">{{ SINGLE_CITY_NAME }}</span>
+  </div>
+  <SelectField v-else v-model="form.cityId" label="Город">
     <option :value="null">Выберите город</option>
     <option v-for="c in sortedCities" :key="c.id" :value="c.id">{{ c.name }}</option>
   </SelectField>
