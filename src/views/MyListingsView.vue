@@ -171,9 +171,14 @@ onDeactivated(() => (fabVisible.value = false))
           :class="tab === t.key ? 'text-text' : 'text-text-muted'"
           @click="selectTab(t.key)"
         >
-          <span class="inline-flex items-start gap-1">
+          <!-- The count sits out of flow (absolute) so the tab width — and with it
+               the underline and the header divider — never jumps when counts load. -->
+          <span class="relative inline-block">
             {{ t.label }}
-            <span v-if="t.count" class="text-[11px] font-semibold leading-none text-text-muted">
+            <span
+              v-if="t.count"
+              class="absolute left-full top-0.5 ml-1 text-[11px] font-semibold leading-none text-text-muted"
+            >
               {{ t.count }}
             </span>
           </span>
