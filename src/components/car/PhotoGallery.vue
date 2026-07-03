@@ -74,9 +74,9 @@ function onScroll() {
       <ImageOff :size="40" :stroke-width="1.4" />
     </div>
 
-    <!-- Position dots -->
+    <!-- Position dots — hidden on the video slide, its own control bar sits there -->
     <div
-      v-if="slideCount > 1"
+      v-if="slideCount > 1 && !(hasVideo && current === 0)"
       class="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
     >
       <span

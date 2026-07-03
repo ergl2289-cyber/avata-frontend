@@ -96,6 +96,27 @@ defineExpose({ pause })
   backdrop-filter: blur(8px);
 }
 
+/* Полноэкранный/full-window режим: полоса заметно выше и кнопки крупнее —
+   на весь экран палец должен уверенно попадать, плюс отступ снизу под
+   safe-area (домашний индикатор iOS). */
+.avata-player .vjs-full-window .vjs-control-bar,
+.avata-player .video-js:fullscreen .vjs-control-bar {
+  height: 64px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.avata-player .vjs-full-window .vjs-control-bar .vjs-control,
+.avata-player .video-js:fullscreen .vjs-control-bar .vjs-control {
+  width: 4em;
+}
+.avata-player .vjs-full-window .vjs-control-bar .vjs-play-progress,
+.avata-player .video-js:fullscreen .vjs-control-bar .vjs-play-progress {
+  height: 100%;
+}
+.avata-player .vjs-full-window .vjs-progress-control,
+.avata-player .video-js:fullscreen .vjs-progress-control {
+  height: 1em;
+}
+
 /* Прогресс и громкость — белые, как весь монохром */
 .avata-player .vjs-play-progress,
 .avata-player .vjs-volume-level {
