@@ -298,9 +298,6 @@ onMounted(() => {
         <div v-if="search.loadingMore" class="flex justify-center py-4">
           <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
-        <div v-else-if="!search.hasMore" class="flex justify-center py-4">
-          <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
-        </div>
       </template>
     </section>
 

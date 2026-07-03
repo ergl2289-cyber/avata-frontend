@@ -173,9 +173,6 @@ onMounted(() => {
         <div v-if="cars.loadingMore" class="flex justify-center py-4">
           <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
-        <div v-else-if="!cars.hasMore" class="flex justify-center py-4">
-          <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
-        </div>
       </template>
     </section>
     </PullToRefresh>
