@@ -31,6 +31,20 @@ onMounted(() => {
       remainingTimeDisplay: false,
     },
   })
+
+  // iOS letterboxes the video (aspect preserved) inside the full-window black
+  // backdrop, but Video.js by default docks the control bar to the *screen*
+  // bottom — leaving a dead gap between the video and the bar. The CSS below
+  // turns the fullscreen player into a centered flex column sized to the
+  // video's real aspect ratio, so the bar sits right on the video edge. It
+  // needs that ratio as a CSS var since it isn't known until metadata loads.
+  player.on('loadedmetadata', () => {
+    const w = player!.videoWidth()
+    const h = player!.videoHeight()
+    if (w && h) {
+      ;(player!.el() as HTMLElement).style.setProperty('--avata-video-ar', `${w} / ${h}`)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
@@ -96,16 +110,39 @@ defineExpose({ pause })
   backdrop-filter: blur(8px);
 }
 
-/* Полноэкранный/full-window режим: полоса заметно выше и кнопки крупнее —
-   на весь экран палец должен уверенно попадать, плюс отступ снизу под
-   safe-area (домашний индикатор iOS). preferFullWindow вешает класс
-   vjs-full-window на <body> (не на сам плеер!), поэтому селектор идёт
-   от body, а не от .avata-player. Нативный fullscreen (Android/desktop)
-   добавляет vjs-fullscreen прямо на .video-js. */
+/* Полноэкранный/full-window режим. preferFullWindow вешает класс
+   vjs-full-window на <body> (не на сам плеер), поэтому селекторы идут
+   от body. Видео леттербоксится (сохраняет пропорции) внутри чёрного
+   fullscreen-фона — по умолчанию Video.js при этом прибивает панель
+   управления к низу ЭКРАНА, оставляя пустой зазор под самим видео.
+   Вместо этого: контейнер становится центрирующим flex-столбцом, video
+   получает высоту по своему реальному соотношению сторон (--avata-video-ar,
+   выставляется в скрипте из loadedmetadata), а панель идёт следом в потоке
+   и накладывается на нижний край видео отрицательным отступом — то есть
+   реально лежит на видео, а не висит в черноте под ним. */
+body.vjs-full-window .video-js.vjs-fullscreen {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+body.vjs-full-window .video-js.vjs-fullscreen .vjs-tech {
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: 100dvh;
+  aspect-ratio: var(--avata-video-ar, 16 / 9);
+}
 body.vjs-full-window .vjs-control-bar,
 .avata-player .video-js.vjs-fullscreen .vjs-control-bar {
   height: 64px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+body.vjs-full-window .video-js.vjs-fullscreen .vjs-control-bar {
+  position: relative !important;
+  width: 100%;
+  margin-top: -64px;
+  z-index: 2;
 }
 body.vjs-full-window .vjs-control-bar .vjs-control,
 .avata-player .video-js.vjs-fullscreen .vjs-control-bar .vjs-control {
