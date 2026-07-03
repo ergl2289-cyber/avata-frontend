@@ -125,6 +125,9 @@ export interface CarDetail extends Omit<CarListItem, 'technical_specs' | 'city'>
   legal?: LegalData | null
   /** Whether the current user has liked this listing (server truth). */
   is_liked?: boolean
+  /** Optional listing video (transcoded server-side) + its poster frame. */
+  video_url?: string | null
+  video_poster_url?: string | null
 }
 
 /**

@@ -8,6 +8,7 @@ import { modelsMock } from '@/api/mocks/brands.mock'
 import { citiesMock } from '@/api/mocks/geo.mock'
 import { me, upsertMyCar } from '@/api/mocks/myCars.mock'
 import { invalidateCar } from '@/api/cars.cache'
+import { useListingVideo } from '@/composables/useListingVideo'
 
 const DRAFTS_KEY = 'avata:drafts'
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
@@ -116,6 +117,7 @@ export const useMyListingsStore = defineStore('myListings', () => {
       } catch (e) {
         console.error('Photo upload failed (listing still created):', e)
       }
+      await syncListingVideo(car_id)
       if (draftId) deleteDraft(draftId)
       await load()
       return car_id
@@ -155,6 +157,7 @@ export const useMyListingsStore = defineStore('myListings', () => {
       } catch (e) {
         console.error('Photo upload failed (edits still saved):', e)
       }
+      await syncListingVideo(carId)
       invalidateCar(carId)
       const item = published.value.find((c) => c.id === carId)
       if (item) {
@@ -297,6 +300,25 @@ async function uploadNewPhotos(carId: number, photos: string[]): Promise<void> {
   if (!fresh.length) return
   const files = await Promise.all(fresh.map((d, i) => dataUrlToFile(d, `photo-${i}.jpg`)))
   await backend.uploadCarPhotos(carId, files)
+}
+
+/**
+ * Push the wizard's video state to the backend: upload a freshly-picked clip
+ * (replaces the old one server-side) or delete the existing one if removed.
+ * Non-critical, like photos — a failure must not fail the whole publish/save.
+ */
+async function syncListingVideo(carId: number): Promise<void> {
+  const { videoFile, removeExisting, resetVideoState } = useListingVideo()
+  try {
+    if (videoFile.value) {
+      await backend.uploadCarVideo(carId, videoFile.value)
+    } else if (removeExisting.value) {
+      await backend.deleteCarVideo(carId)
+    }
+    resetVideoState()
+  } catch (e) {
+    console.error('Video sync failed (listing still saved):', e)
+  }
 }
 
 /** Project a full CarDetail down to the lightweight "my listings" item. */

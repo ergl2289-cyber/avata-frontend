@@ -148,6 +148,8 @@ function detailToCarDetail(d: backend.CarDetailResponse): CarDetail {
         }
       : null,
     is_liked: d.is_liked,
+    video_url: d.video_url ?? null,
+    video_poster_url: d.video_poster_url ?? null,
   }
 }
 

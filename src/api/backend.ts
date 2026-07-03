@@ -284,6 +284,8 @@ export interface CarDetailResponse {
   technical: TechnicalSpecs | null
   legal: LegalData | null
   photos: PhotoInfo[]
+  video_url?: string | null
+  video_poster_url?: string | null
   is_liked: boolean
   is_boosted?: boolean
   boosted_until?: string | null
@@ -376,6 +378,39 @@ export async function uploadCarPhotos(carId: number, files: File[]): Promise<str
   if (!resp.ok) throw new Error(`Photo upload failed: ${resp.status}`)
   const data = await resp.json()
   return data.file_ids as string[]
+}
+
+/* ------------------------------------------------------------------
+ * Cars — video (one clip per listing; the backend transcodes & limits it)
+ * ------------------------------------------------------------------ */
+
+export async function uploadCarVideo(
+  carId: number,
+  file: File,
+): Promise<{ video_id: string; poster_id: string }> {
+  const token = getToken()
+  const form = new FormData()
+  form.append('file', file)
+
+  const resp = await fetch(`${API_URL}/api/cars/${carId}/video`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+  if (!resp.ok) {
+    let detail = ''
+    try {
+      detail = (await resp.json()).detail ?? ''
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(detail || `Video upload failed: ${resp.status}`)
+  }
+  return resp.json()
+}
+
+export function deleteCarVideo(carId: number): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/cars/${carId}/video`, { method: 'DELETE' })
 }
 
 /* ------------------------------------------------------------------

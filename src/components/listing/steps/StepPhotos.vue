@@ -1,17 +1,42 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Camera, X } from 'lucide-vue-next'
+import { Camera, Video, X } from 'lucide-vue-next'
 import type { ListingForm } from '@/types/listing'
 import { useTelegram } from '@/composables/useTelegram'
+import { useListingVideo, VIDEO_MAX_SECONDS } from '@/composables/useListingVideo'
 
 const props = defineProps<{ form: ListingForm }>()
 const { haptic } = useTelegram()
+const {
+  videoPreviewUrl,
+  videoError,
+  existingPosterUrl,
+  setVideo,
+  clearVideo,
+} = useListingVideo()
 
 const MAX = 10
 const input = ref<HTMLInputElement | null>(null)
+const videoInput = ref<HTMLInputElement | null>(null)
 
 function pick() {
   input.value?.click()
+}
+
+function pickVideo() {
+  videoInput.value?.click()
+}
+
+async function onVideo(e: Event) {
+  const f = (e.target as HTMLInputElement).files?.[0]
+  ;(e.target as HTMLInputElement).value = ''
+  if (!f) return
+  if (await setVideo(f)) haptic('light')
+}
+
+function removeVideo() {
+  haptic('light')
+  clearVideo()
 }
 
 function onFiles(e: Event) {
@@ -71,6 +96,53 @@ function remove(i: number) {
 
     <p class="mt-3 text-[13px] text-text-muted">До {{ MAX }} фото. Первое станет обложкой.</p>
 
+    <!-- Video (one clip; compressed server-side) -->
+    <p class="mb-3 mt-6 text-[15px] font-semibold text-text">Видео</p>
+
+    <!-- Picked (or existing) clip -->
+    <div
+      v-if="videoPreviewUrl || existingPosterUrl"
+      class="relative aspect-video overflow-hidden rounded-card bg-surface"
+    >
+      <video
+        v-if="videoPreviewUrl"
+        :src="videoPreviewUrl"
+        muted
+        playsinline
+        preload="metadata"
+        class="h-full w-full object-cover"
+      />
+      <img v-else :src="existingPosterUrl!" alt="" class="h-full w-full object-cover" />
+      <span
+        class="pointer-events-none absolute bottom-2 left-2 rounded-pill bg-black/55 px-2 py-0.5 text-[12px] text-white backdrop-blur-md"
+      >
+        {{ videoPreviewUrl ? 'Загрузится при публикации' : 'Видео загружено' }}
+      </span>
+      <button
+        type="button"
+        aria-label="Удалить видео"
+        class="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md active:scale-90"
+        @click="removeVideo"
+      >
+        <X :size="15" />
+      </button>
+    </div>
+
+    <!-- Add tile -->
+    <button
+      v-else
+      type="button"
+      class="flex aspect-video w-full flex-col items-center justify-center gap-1.5 rounded-card bg-surface text-text-muted transition-transform duration-fast ease-out-ios active:scale-[0.98]"
+      @click="pickVideo"
+    >
+      <Video :size="26" :stroke-width="1.6" />
+      <span class="text-[13px]">Добавить видео</span>
+    </button>
+
+    <p class="mt-3 text-[13px]" :class="videoError ? 'text-like' : 'text-text-muted'">
+      {{ videoError ?? `Одно видео до ${VIDEO_MAX_SECONDS} секунд и 100 МБ. Видео помогает продать быстрее.` }}
+    </p>
+
     <input
       ref="input"
       type="file"
@@ -78,6 +150,13 @@ function remove(i: number) {
       multiple
       class="hidden"
       @change="onFiles"
+    />
+    <input
+      ref="videoInput"
+      type="file"
+      accept="video/*"
+      class="hidden"
+      @change="onVideo"
     />
   </div>
 </template>

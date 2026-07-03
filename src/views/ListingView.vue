@@ -349,7 +349,12 @@ onMounted(load)
     <template v-else>
       <!-- Gallery + overlay controls -->
       <div class="relative">
-        <PhotoGallery :photos="photos" :alt="title" />
+        <PhotoGallery
+          :photos="photos"
+          :alt="title"
+          :video-url="car.video_url"
+          :video-poster-url="car.video_poster_url"
+        />
         <div class="pointer-events-none absolute inset-x-0 top-0 safe-top">
           <div class="flex items-center justify-between px-4 py-3">
             <button

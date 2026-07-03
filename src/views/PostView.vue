@@ -14,6 +14,7 @@ import { useMyListingsStore, detailToForm } from '@/stores/myListings'
 import { getCarById, backend } from '@/api/cars.service'
 import { BOOST_DEFAULT_TARIFF } from '@/api/backend'
 import { useTelegram } from '@/composables/useTelegram'
+import { useListingVideo } from '@/composables/useListingVideo'
 import { useProfileStore } from '@/stores/profile'
 import { MOSCOW_ONLY } from '@/config'
 import type { CarDetail } from '@/types/car'
@@ -39,11 +40,17 @@ const form = reactive<ListingForm>(
 )
 const currentDraftId = ref<string | null>(props.draftId ?? null)
 
+// Video lives outside the form (a File can't be stored in a draft) — start the
+// wizard with a clean slate; edit mode below re-seeds the existing poster.
+const { resetVideoState } = useListingVideo()
+resetVideoState()
+
 if (props.carId != null) {
   getCarById(props.carId)
     .then((res) => {
       editBase = res.data
       Object.assign(form, detailToForm(res.data))
+      resetVideoState(res.data.video_poster_url ?? null)
     })
     .catch(() => notify('error'))
     .finally(() => (loadingEdit.value = false))
