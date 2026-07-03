@@ -298,9 +298,8 @@ onMounted(() => {
         <div v-if="search.loadingMore" class="flex justify-center py-4">
           <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
-        <!-- End of feed: same spacing/ring as the loading spinner, mirrored (static, flipped). -->
         <div v-else-if="!search.hasMore" class="flex justify-center py-4">
-          <span class="h-5 w-5 rotate-180 rounded-full border-2 border-text-faint border-t-text" />
+          <span class="h-5 w-5 animate-spin rounded-full border-2 border-text-faint border-t-text" />
         </div>
       </template>
     </section>
