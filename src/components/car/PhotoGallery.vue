@@ -49,8 +49,10 @@ function onScroll() {
       :class="ratioClass"
       @scroll.passive="onScroll"
     >
-      <!-- Video slide (first): Video.js — единый плеер на всех платформах -->
-      <div v-if="hasVideo" class="relative h-full w-full shrink-0 snap-center">
+      <!-- Видео-слайд (первый): свой плеер. snap-always — иначе на iOS Safari
+           карусель с этим слайдом может «залипать» на полпути между слайдами
+           вместо чёткого прилипания к одному кадру. -->
+      <div v-if="hasVideo" class="relative h-full w-full shrink-0 snap-center snap-always">
         <VideoPlayer ref="playerRef" :src="videoUrl!" :poster="videoPosterUrl" />
       </div>
 
@@ -62,7 +64,7 @@ function onScroll() {
         :draggable="false"
         :loading="i === 0 && !hasVideo ? 'eager' : 'lazy'"
         decoding="async"
-        class="h-full w-full shrink-0 snap-center object-cover"
+        class="h-full w-full shrink-0 snap-center snap-always object-cover"
       />
     </div>
 
