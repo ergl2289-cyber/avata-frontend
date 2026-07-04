@@ -1,146 +1,229 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import videojs from 'video.js'
-import 'video.js/dist/video-js.css'
-import type Player from 'video.js/dist/types/player'
+import { onBeforeUnmount, ref, watch } from 'vue'
+import { Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from 'lucide-vue-next'
 
 /**
- * Единый видеоплеер приложения (Video.js) — один и тот же минималистичный UI на
- * всех платформах, включая iOS (preferFullWindow вместо нативного плеера).
- * Никаких меню скорости/качества: они в Video.js появляются только если их
- * включить, так что просто не включаем. PiP-кнопка убрана.
+ * Единый видеоплеер приложения — полностью свой UI на native <video>, без
+ * стороннего скина. Ключевое решение: «полноэкранный» режим — это НЕ вызов
+ * браузерного/нативного Fullscreen API (на iPhone он всегда подменяется
+ * системным AVKit-плеером со своими контролами — от него мы и уходим), а
+ * просто CSS-оверлей на весь экран (position: fixed) с тем же <video>
+ * элементом, перемещённым через Teleport. Плавно, одинаково на всех
+ * платформах, без чужого UI.
  */
-const props = defineProps<{ src: string; poster?: string | null }>()
+const { src, poster } = defineProps<{ src: string; poster?: string | null }>()
 
-const el = ref<HTMLVideoElement | null>(null)
-let player: Player | null = null
+const videoEl = ref<HTMLVideoElement | null>(null)
+const playing = ref(false)
+const muted = ref(false)
+const duration = ref(0)
+const currentTime = ref(0)
+const fullscreen = ref(false)
 
-onMounted(() => {
-  player = videojs(el.value!, {
-    controls: true,
-    preload: 'none',
-    fill: true, // fills the slide box; the video keeps its aspect via letterboxing
-    playsinline: true,
-    // iOS has no element-fullscreen API → Video.js would fall back to the native
-    // player; full-window mode keeps our UI on every platform instead.
-    preferFullWindow: true,
-    poster: props.poster ?? undefined,
-    sources: [{ src: props.src, type: 'video/mp4' }],
-    controlBar: {
-      pictureInPictureToggle: false,
-      remainingTimeDisplay: false,
-    },
-  })
+const progressPct = () => (duration.value ? (currentTime.value / duration.value) * 100 : 0)
 
+function togglePlay() {
+  const v = videoEl.value
+  if (!v) return
+  if (v.paused) v.play().catch(() => {})
+  else v.pause()
+}
+
+function onTimeUpdate() {
+  currentTime.value = videoEl.value?.currentTime ?? 0
+}
+
+function onLoadedMetadata() {
+  duration.value = videoEl.value?.duration || 0
+}
+
+function onSeek(e: Event) {
+  const v = videoEl.value
+  if (!v) return
+  v.currentTime = Number((e.target as HTMLInputElement).value)
+}
+
+function toggleMute() {
+  muted.value = !muted.value
+  if (videoEl.value) videoEl.value.muted = muted.value
+}
+
+function toggleFullscreen() {
+  fullscreen.value = !fullscreen.value
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && fullscreen.value) fullscreen.value = false
+}
+
+watch(fullscreen, (on) => {
+  document.body.style.overflow = on ? 'hidden' : ''
+  if (on) window.addEventListener('keydown', onKeydown)
+  else window.removeEventListener('keydown', onKeydown)
 })
 
 onBeforeUnmount(() => {
-  player?.dispose()
-  player = null
+  document.body.style.overflow = ''
+  window.removeEventListener('keydown', onKeydown)
 })
 
+function formatTime(s: number): string {
+  if (!Number.isFinite(s)) return '0:00'
+  const m = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${m}:${sec.toString().padStart(2, '0')}`
+}
+
 function pause() {
-  player?.pause()
+  videoEl.value?.pause()
 }
 defineExpose({ pause })
 </script>
 
 <template>
-  <div class="avata-player h-full w-full">
-    <video ref="el" class="video-js" playsinline />
-  </div>
+  <Teleport to="body" :disabled="!fullscreen">
+    <div
+      class="avata-player select-none"
+      :class="
+        fullscreen
+          ? 'fixed inset-0 z-[999] flex items-center justify-center bg-black'
+          : 'relative h-full w-full bg-black'
+      "
+    >
+      <video
+        ref="videoEl"
+        :src="src"
+        :poster="poster ?? undefined"
+        playsinline
+        preload="none"
+        :muted="muted"
+        :class="fullscreen ? 'max-h-full max-w-full' : 'h-full w-full object-cover'"
+        @click="togglePlay"
+        @play="playing = true"
+        @pause="playing = false"
+        @timeupdate="onTimeUpdate"
+        @loadedmetadata="onLoadedMetadata"
+      />
+
+      <!-- Big play button — shown until first play -->
+      <button
+        v-if="!playing"
+        type="button"
+        aria-label="Смотреть видео"
+        class="absolute inset-0 flex items-center justify-center"
+        @click="togglePlay"
+      >
+        <span
+          class="flex items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform duration-fast ease-out-ios active:scale-90"
+          :class="fullscreen ? 'h-16 w-16' : 'h-14 w-14'"
+        >
+          <Play :size="fullscreen ? 30 : 26" :stroke-width="2" class="ml-1" fill="currentColor" />
+        </span>
+      </button>
+
+      <!-- Exit fullscreen (top-left, only in fullscreen) -->
+      <button
+        v-if="fullscreen"
+        type="button"
+        aria-label="Свернуть"
+        class="absolute left-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md active:scale-90"
+        style="top: calc(12px + env(safe-area-inset-top, 0px))"
+        @click="toggleFullscreen"
+      >
+        <Minimize2 :size="18" />
+      </button>
+
+      <!-- Control bar -->
+      <div
+        class="absolute inset-x-0 bottom-0 flex items-center gap-2.5 bg-black/55 px-3 backdrop-blur-md"
+        :style="{
+          height: fullscreen ? '64px' : '40px',
+          paddingBottom: fullscreen ? 'env(safe-area-inset-bottom, 0px)' : '0px',
+        }"
+      >
+        <button
+          type="button"
+          :aria-label="playing ? 'Пауза' : 'Смотреть'"
+          class="flex shrink-0 items-center justify-center text-white active:scale-90"
+          @click="togglePlay"
+        >
+          <Pause v-if="playing" :size="fullscreen ? 22 : 18" fill="currentColor" />
+          <Play v-else :size="fullscreen ? 22 : 18" fill="currentColor" />
+        </button>
+
+        <input
+          type="range"
+          class="avata-seek min-w-0 flex-1"
+          :min="0"
+          :max="duration || 0"
+          :value="currentTime"
+          step="0.1"
+          :style="{ '--pct': `${progressPct()}%` }"
+          @input="onSeek"
+        />
+
+        <span v-if="fullscreen" class="shrink-0 text-[12px] tabular-nums text-white/80">
+          {{ formatTime(currentTime) }}
+        </span>
+
+        <button
+          type="button"
+          :aria-label="muted ? 'Включить звук' : 'Выключить звук'"
+          class="flex shrink-0 items-center justify-center text-white active:scale-90"
+          @click="toggleMute"
+        >
+          <VolumeX v-if="muted" :size="fullscreen ? 20 : 16" />
+          <Volume2 v-else :size="fullscreen ? 20 : 16" />
+        </button>
+
+        <button
+          type="button"
+          aria-label="На весь экран"
+          class="flex shrink-0 items-center justify-center text-white active:scale-90"
+          @click="toggleFullscreen"
+        >
+          <Minimize2 v-if="fullscreen" :size="18" />
+          <Maximize2 v-else :size="16" />
+        </button>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
-<style>
-/* Video.js в дизайн-токенах приложения: тёмный монохром, мягкие радиусы,
-   полупрозрачные подложки с блюром — как остальные оверлеи (кнопки галереи). */
-.avata-player .video-js {
-  width: 100%;
-  height: 100%;
-  background: #000;
-  font-size: 12px;
-  font-family: inherit;
-}
-
-/* Big play: круглая кнопка по центру, как наша самодельная была */
-.avata-player .vjs-big-play-button {
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 56px;
-  height: 56px;
-  margin: 0;
-  border: none;
+<style scoped>
+/* Кастомный <input type="range"> в стиле приложения: белый прогресс поверх
+   полупрозрачного трека, маленький белый бегунок — тот же язык, что и
+   остальные слайдеры/полосы прогресса в проекте. */
+.avata-seek {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(
+    to right,
+    #fff var(--pct),
+    rgba(255, 255, 255, 0.3) var(--pct)
+  );
+  outline: none;
 }
-.avata-player .vjs-big-play-button .vjs-icon-placeholder::before {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-}
-.avata-player .video-js:hover .vjs-big-play-button,
-.avata-player .vjs-big-play-button:focus {
-  background: rgba(0, 0, 0, 0.7);
-}
-.avata-player .vjs-big-play-button:active {
-  transform: translate(-50%, -50%) scale(0.9);
-}
-
-/* Control bar: полупрозрачная тёмная полоса с блюром */
-.avata-player .vjs-control-bar {
-  height: 40px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-}
-
-/* Полноэкранный/full-window режим: полоса заметно выше и кнопки крупнее —
-   на весь экран палец должен уверенно попадать, плюс отступ снизу под
-   safe-area (домашний индикатор iOS). preferFullWindow вешает класс
-   vjs-full-window на <body> (не на сам плеер!), поэтому селектор идёт
-   от body, а не от .avata-player. Нативный fullscreen (Android/десктоп)
-   добавляет vjs-fullscreen прямо на .video-js.
-   NB: пробовали центрировать плеер flex-колонкой и накладывать control-bar
-   на видео отрицательным margin — на десктопном Telegram это утаскивало
-   панель (и кнопку выхода из fullscreen) за пределы экрана. Не трогать без
-   надёжной проверки на десктопе — простой докинг к низу экрана надёжнее. */
-body.vjs-full-window .vjs-control-bar,
-.avata-player .video-js.vjs-fullscreen .vjs-control-bar {
-  height: 64px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-}
-body.vjs-full-window .vjs-control-bar .vjs-control,
-.avata-player .video-js.vjs-fullscreen .vjs-control-bar .vjs-control {
-  width: 4em;
-}
-body.vjs-full-window .vjs-progress-control,
-.avata-player .video-js.vjs-fullscreen .vjs-progress-control {
-  height: 1.2em;
-}
-
-/* Прогресс и громкость — белые, как весь монохром */
-.avata-player .vjs-play-progress,
-.avata-player .vjs-volume-level {
+.avata-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
   background: #fff;
 }
-.avata-player .vjs-slider {
-  background: rgba(255, 255, 255, 0.25);
+.avata-seek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
 }
-.avata-player .vjs-load-progress,
-.avata-player .vjs-load-progress div {
-  background: rgba(255, 255, 255, 0.35);
-}
-
-/* Спиннер загрузки в стиле приложения */
-.avata-player .vjs-loading-spinner {
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-/* Постер аккуратно заполняет слайд */
-.avata-player .vjs-poster img {
-  object-fit: cover;
+.avata-seek::-moz-range-track {
+  height: 3px;
+  border-radius: 9999px;
+  background: transparent;
 }
 </style>
