@@ -97,21 +97,31 @@ defineExpose({ pause })
         playsinline
         preload="none"
         :muted="muted"
+        class="pointer-events-none"
+        style="touch-action: pan-x"
         :class="fullscreen ? 'max-h-full max-w-full' : 'h-full w-full object-cover'"
-        @click="togglePlay"
         @play="playing = true"
         @pause="playing = false"
         @timeupdate="onTimeUpdate"
         @loadedmetadata="onLoadedMetadata"
       />
 
-      <!-- Big play button — shown until first play -->
+      <!-- Прозрачный слой поверх <video>: WebKit игнорирует touch-action на самом
+           video (своя системная обработка жестов), из-за чего вертикальный
+           свайп по видео «утаскивал» его за рамки. Касания принимает этот слой
+           (video — pointer-events-none), тут touch-action реально работает. -->
       <button
-        v-if="!playing"
         type="button"
-        aria-label="Смотреть видео"
-        class="absolute inset-0 flex items-center justify-center"
+        aria-label="Смотреть / пауза"
+        class="absolute inset-0"
+        style="touch-action: pan-x"
         @click="togglePlay"
+      />
+
+      <!-- Big play button — shown until first play -->
+      <div
+        v-if="!playing"
+        class="pointer-events-none absolute inset-0 flex items-center justify-center"
       >
         <span
           class="flex items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform duration-fast ease-out-ios active:scale-90"
@@ -119,7 +129,7 @@ defineExpose({ pause })
         >
           <Play :size="fullscreen ? 30 : 26" :stroke-width="2" class="ml-1" fill="currentColor" />
         </span>
-      </button>
+      </div>
 
       <!-- Exit fullscreen (top-left, only in fullscreen) -->
       <button
