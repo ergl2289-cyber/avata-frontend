@@ -10,7 +10,7 @@ import { ref } from 'vue'
  */
 
 export const VIDEO_MAX_BYTES = 100 * 1024 * 1024 // matches the backend cap
-export const VIDEO_MAX_SECONDS = 60
+export const VIDEO_MAX_SECONDS = 120
 
 const file = ref<File | null>(null)
 const previewUrl = ref<string | null>(null) // object URL for the picked file
