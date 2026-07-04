@@ -41,11 +41,11 @@ function onScroll() {
 </script>
 
 <template>
-  <div class="relative select-none bg-surface">
+  <div class="relative select-none overflow-hidden bg-surface">
     <div
       v-if="slideCount"
       ref="track"
-      class="no-scrollbar flex w-full snap-x snap-mandatory overflow-x-auto"
+      class="no-scrollbar flex w-full touch-pan-x snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
       :class="ratioClass"
       @scroll.passive="onScroll"
     >
