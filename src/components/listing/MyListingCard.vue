@@ -59,7 +59,7 @@ function openMenu() {
 
       <div class="mt-auto flex items-center gap-3 pt-2">
         <span
-          v-if="archived"
+          v-if="archived && car.moderation_status !== 'rejected'"
           class="inline-flex items-center gap-1 rounded-pill bg-surface-2 px-2 py-0.5 text-[12px] font-medium text-text-muted"
         >
           <Archive :size="13" :stroke-width="2" /> В архиве

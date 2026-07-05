@@ -45,9 +45,13 @@ export const useMyListingsStore = defineStore('myListings', () => {
   const moderation = computed(() =>
     published.value.filter((c) => c.moderation_status === 'pending'),
   )
-  // Published listings taken off display (approved but is_active=false) — shown in Архив.
+  // Published listings taken off display (approved but is_active=false), plus
+  // rejected ones — both land in Архив (a rejected listing has nowhere else to
+  // go: it's not active, not pending, and used to just vanish from the app).
   const archivedListings = computed(() =>
-    published.value.filter((c) => c.moderation_status === 'approved' && !c.is_active),
+    published.value.filter(
+      (c) => (c.moderation_status === 'approved' && !c.is_active) || c.moderation_status === 'rejected',
+    ),
   )
 
   const counts = computed(() => ({
